@@ -66,9 +66,52 @@ overflow: hidden;
 #controls {
 background: rgba(255, 255, 255, 0.95);
 width: var(--panel-w);
-padding: 14px;
-overflow-y: auto;
+padding: 0;
+overflow: hidden;
 box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+display: flex;
+flex-direction: column;
+}
+/* Tab navigation */
+.tab-nav {
+display: flex;
+border-bottom: 1px solid #ddd;
+background: #f9f9f9;
+}
+.tab-button {
+flex: 1;
+padding: 12px 8px;
+text-align: center;
+background: none;
+border: none;
+cursor: pointer;
+font-size: 12px;
+color: #666;
+transition: all 0.2s ease;
+}
+.tab-button:hover {
+background: #f0f0f0;
+color: #333;
+}
+.tab-button.active {
+background: white;
+color: var(--primary-color);
+border-bottom: 2px solid var(--primary-color);
+}
+.tab-button i {
+display: block;
+font-size: 16px;
+margin-bottom: 4px;
+}
+/* Tab content */
+.tab-content {
+flex: 1;
+overflow-y: auto;
+padding: 14px;
+display: none;
+}
+.tab-content.active {
+display: block;
 }
 /* Editor area - now positioned at bottom right */
 #editorWrap {
@@ -291,11 +334,6 @@ cursor: pointer;
 padding: 0;
 }
 /* Export section styles */
-.export-section {
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px solid #ddd;
-}
 .export-buttons {
     display: flex;
     flex-wrap: wrap;
@@ -541,6 +579,32 @@ padding: 0;
     font-size: 11px;
     display: block;
 }
+/* Tool buttons */
+.tool-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+.tool-button {
+    flex: 1;
+    min-width: 100px;
+    background: var(--primary-color);
+    color: var(--secondary-color);
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    text-align: center;
+}
+.tool-button:hover {
+    background: #333;
+}
+.tool-button i {
+    margin-right: 5px;
+}
 /* Mobile responsiveness */
 @media (max-width: 768px) {
 :root { --panel-w: 280px; }
@@ -583,7 +647,7 @@ display: block;
 font-size: 16px;
 }
 #controls {
-padding: 10px;
+padding: 0;
 }
 #editorWrap {
 width: 200px;
@@ -685,193 +749,225 @@ font-size: 9px;
 </div>
 <div class="app-content">
 <div id="controls">
-<h3>Model Selection</h3>
-<div class="model-selection">
-    <div class="model-grid">
-        <div class="model-option selected" data-model="tshirt" data-uv="tshirtUv">
-            <i class="fas fa-tshirt"></i>
-            <span>T-Shirt</span>
+<!-- Tab Navigation -->
+<div class="tab-nav">
+    <button class="tab-button active" data-tab="model">
+        <i class="fas fa-tshirt"></i>
+        <span>Model</span>
+    </button>
+    <button class="tab-button" data-tab="tools">
+        <i class="fas fa-tools"></i>
+        <span>Tools</span>
+    </button>
+    <button class="tab-button" data-tab="scene">
+        <i class="fas fa-palette"></i>
+        <span>Scene</span>
+    </button>
+    <button class="tab-button" data-tab="export">
+        <i class="fas fa-download"></i>
+        <span>Export</span>
+    </button>
+</div>
+
+<!-- Tab Content -->
+<div class="tab-content active" id="model-tab">
+    <h3>Model Selection</h3>
+    <div class="model-selection">
+        <div class="model-grid">
+            <div class="model-option selected" data-model="tshirt" data-uv="tshirtUv">
+                <i class="fas fa-tshirt"></i>
+                <span>T-Shirt</span>
+            </div>
+            <div class="model-option" data-model="hoodie" data-uv="hoodieUv">
+                <i class="fas fa-tshirt"></i>
+                <span>Hoodie</span>
+            </div>
+            <div class="model-option" data-model="cap" data-uv="capUv">
+                <i class="fas fa-hat-cowboy"></i>
+                <span>Cap</span>
+            </div>
+            <div class="model-option" data-model="longsleeve" data-uv="longsleeveUv">
+                <i class="fas fa-tshirt"></i>
+                <span>Long Sleeve</span>
+            </div>
         </div>
-        <div class="model-option" data-model="hoodie" data-uv="hoodieUv">
-            <i class="fas fa-tshirt"></i>
-            <span>Hoodie</span>
+        <div id="modelLoading" class="model-loading">
+            <i class="fas fa-spinner"></i> Loading model...
         </div>
-        <div class="model-option" data-model="cap" data-uv="capUv">
-            <i class="fas fa-hat-cowboy"></i>
-            <span>Cap</span>
-        </div>
-        <div class="model-option" data-model="longsleeve" data-uv="longsleeveUv">
-            <i class="fas fa-tshirt"></i>
-            <span>Long Sleeve</span>
-        </div>
-    </div>
-    <div id="modelLoading" class="model-loading">
-        <i class="fas fa-spinner"></i> Loading model...
     </div>
 </div>
-<h3>Tools</h3>
-<label>Upload Image
-<input type="file" id="upload" accept="image/*">
-</label>
-<div style="margin-top:8px;">
-<button id="addTextBtn">Add Text</button>
-<button id="deleteLayerBtn">Delete Layer</button>
-</div>
-<label>Active Layer Opacity
-<input type="range" id="opacity" min="0" max="1" step="0.05" value="1">
-<span id="opacityValue">1.00</span>
-</label>
-<label>Active Layer Rotation
-<input type="range" id="rotation" min="-180" max="180" step="1" value="0">
-<span id="rotationValue">0°</span>
-</label>
-<!-- Image Position and Size Controls -->
-<div id="imageControls" style="display:none;">
-    <h4>Image Position & Size</h4>
-    <div class="position-size-controls">
-        <div class="control-group">
-            <label>X Position</label>
-            <input type="number" id="imageX" min="0" max="512" value="0">
-        </div>
-        <div class="control-group">
-            <label>Y Position</label>
-            <input type="number" id="imageY" min="0" max="512" value="0">
-        </div>
-        <div class="control-group">
-            <label>Width</label>
-            <input type="number" id="imageWidth" min="10" max="512" value="100">
-        </div>
-        <div class="control-group">
-            <label>Height</label>
-            <input type="number" id="imageHeight" min="10" max="512" value="100">
-        </div>
-    </div>
-    <div style="margin-top:8px;">
-        <button id="resetImageSize">Reset Size</button>
-        <button id="lockAspectRatio" style="background:#666;">
-            <i class="fas fa-lock"></i> Lock Aspect
+
+<div class="tab-content" id="tools-tab">
+    <h3>Design Tools</h3>
+    <div class="tool-buttons">
+        <button id="addTextBtn" class="tool-button">
+            <i class="fas fa-font"></i> Add Text
+        </button>
+        <button id="deleteLayerBtn" class="tool-button">
+            <i class="fas fa-trash"></i> Delete Layer
         </button>
     </div>
-</div>
-<div id="textControls" style="display:none;">
-<label>Text
-<input type="text" id="textInput" placeholder="Enter text..." />
-</label>
-<label>Font Size
-<input type="number" id="fontSize" min="8" max="200" value="32" />
-</label>
-<label>Color
-<input type="color" id="fontColor" value="#000000" />
-</label>
-</div>
-<label>
-<input type="checkbox" id="uvVisible" checked> Show UV guide (editor only)
-</label>
-<label style="margin-top:10px;">
-<input type="checkbox" id="useTextureFlipY"> Use <code>texture.flipY = true</code> (don't flip canvas)
-</label>
-<div class="hint">Toggle if your model expects flipped textures. Try both modes.</div>
-<hr style="margin:12px 0">
-<h3>Scene Settings</h3>
-<label>Background Color
-<div class="color-row">
-<input type="color" id="bgColor" value="#e9e9e9">
-<span id="bgColorValue">#e9e9e9</span>
-</div>
-</label>
-<label>Model Base Color
-<div class="color-row">
-<input type="color" id="shirtColor" value="#ffffff">
-<span id="shirtColorValue">#ffffff</span>
-</div>
-</label>
-<div id="layerInfo" style="margin-top:8px">No active layer</div>
-<div style="margin-top:10px; text-align:center; color:#666; font-size:12px;">
-Live Update <span class="status-indicator"></span>
-</div>
-<hr style="margin:12px 0">
-<div class="export-section">
-<h3>Export</h3>
-<div class="export-buttons">
-<button id="exportPNGPortrait" class="export-button">
-<i class="fas fa-portrait"></i> PNG Portrait
-</button>
-<button id="exportPNGLandscape" class="export-button">
-<i class="fas fa-landscape"></i> PNG Landscape
-</button>
-<button id="exportMP4Portrait" class="export-button">
-<i class="fas fa-portrait"></i> MP4 Portrait
-</button>
-<button id="exportMP4Landscape" class="export-button">
-<i class="fas fa-landscape"></i> MP4 Landscape
-</button>
-</div>
-<div class="animation-settings">
-    <h4>Animation Settings</h4>
-    <div class="animation-type-selection">
-        <label>Animation Type</label>
-        <div class="animation-type-grid">
-            <div class="animation-type-option selected" data-animation="rotation">
-                <i class="fas fa-sync-alt"></i>
-                <span>Rotation</span>
-            </div>
-            <div class="animation-type-option" data-animation="pulse">
-                <i class="fas fa-expand-arrows-alt"></i>
-                <span>Pulse</span>
-            </div>
-            <div class="animation-type-option" data-animation="bounce">
-                <i class="fas fa-arrow-up"></i>
-                <span>Bounce</span>
-            </div>
-            <div class="animation-type-option" data-animation="leftEnter">
-                <i class="fas fa-arrow-right"></i>
-                <span>Left Enter</span>
-            </div>
-            <div class="animation-type-option" data-animation="cameraOrbit">
-                <i class="fas fa-video"></i>
-                <span>Camera Orbit</span>
-            </div>
-        </div>
-    </div>
-    <label>Animation Duration (seconds)
-        <input type="range" id="animationDuration" min="3" max="10" step="0.5" value="5">
-        <span id="animationDurationValue">5s</span>
+    
+    <label>Upload Image
+    <input type="file" id="upload" accept="image/*">
     </label>
-    <label>Animation Speed
-        <input type="range" id="animationSpeed" min="0.5" max="3" step="0.1" value="1">
-        <span id="animationSpeedValue">1x</span>
+    
+    <label>Active Layer Opacity
+    <input type="range" id="opacity" min="0" max="1" step="0.05" value="1">
+    <span id="opacityValue">1.00</span>
     </label>
-    <div style="margin-top:10px;">
-        <button id="previewAnimationPortrait" class="export-button">
-            <i class="fas fa-play"></i> Preview Portrait
-        </button>
-        <button id="previewAnimationLandscape" class="export-button">
-            <i class="fas fa-play"></i> Preview Landscape
-        </button>
+    
+    <label>Active Layer Rotation
+    <input type="range" id="rotation" min="-180" max="180" step="1" value="0">
+    <span id="rotationValue">0°</span>
+    </label>
+    
+    <!-- Image Position and Size Controls -->
+    <div id="imageControls" style="display:none;">
+        <h4>Image Position & Size</h4>
+        <div class="position-size-controls">
+            <div class="control-group">
+                <label>X Position</label>
+                <input type="number" id="imageX" min="0" max="512" value="0">
+            </div>
+            <div class="control-group">
+                <label>Y Position</label>
+                <input type="number" id="imageY" min="0" max="512" value="0">
+            </div>
+            <div class="control-group">
+                <label>Width</label>
+                <input type="number" id="imageWidth" min="10" max="512" value="100">
+            </div>
+            <div class="control-group">
+                <label>Height</label>
+                <input type="number" id="imageHeight" min="10" max="512" value="100">
+            </div>
+        </div>
+        <div style="margin-top:8px;">
+            <button id="resetImageSize">Reset Size</button>
+            <button id="lockAspectRatio" style="background:#666;">
+                <i class="fas fa-lock"></i> Lock Aspect
+            </button>
+        </div>
     </div>
-</div>
-<div class="format-selection">
+    
+    <div id="textControls" style="display:none;">
+        <label>Text
+        <input type="text" id="textInput" placeholder="Enter text..." />
+        </label>
+        <label>Font Size
+        <input type="number" id="fontSize" min="8" max="200" value="32" />
+        </label>
+        <label>Color
+        <input type="color" id="fontColor" value="#000000" />
+        </label>
+    </div>
+    
     <label>
-        <input type="radio" name="videoFormat" value="mp4" checked>
-        MP4 (H.264) - Recommended
+    <input type="checkbox" id="uvVisible" checked> Show UV guide (editor only)
     </label>
-    <label>
-        <input type="radio" name="videoFormat" value="webm">
-        WebM (VP9) - Fallback
+    
+    <label style="margin-top:10px;">
+    <input type="checkbox" id="useTextureFlipY"> Use <code>texture.flipY = true</code> (don't flip canvas)
+    </label>
+    <div class="hint">Toggle if your model expects flipped textures. Try both modes.</div>
+    
+    <div id="layerInfo" style="margin-top:8px">No active layer</div>
+    <div style="margin-top:10px; text-align:center; color:#666; font-size:12px;">
+    Live Update <span class="status-indicator"></span>
+    </div>
+</div>
+
+<div class="tab-content" id="scene-tab">
+    <h3>Scene Settings</h3>
+    <label>Background Color
+    <div class="color-row">
+        <input type="color" id="bgColor" value="#e9e9e9">
+        <span id="bgColorValue">#e9e9e9</span>
+    </div>
+    </label>
+    
+    <label>Model Base Color
+    <div class="color-row">
+        <input type="color" id="shirtColor" value="#ffffff">
+        <span id="shirtColorValue">#ffffff</span>
+    </div>
     </label>
 </div>
-<div class="hint">Video exports include your selected animation based on your settings.</div>
-</div>
-<hr style="margin:12px 0">
-<div class="small">
-<strong>Production Setup:</strong>
-<ul>
-<li>Place your model files in the <code>models/</code> folder</li>
-<li>Required files: t-shirt.glb, hoodie.glb, cap.glb, long-sleeve.glb</li>
-<li>Required UV maps: t-shirt_uvmap.png, hoodie_uvmap.png, cap_uvmap.png, long-sleeve_uvmap.png</li>
-<li>All UV maps should be 512x512 PNG files</li>
-<li>Models should be in GLTF/GLB format</li>
-</ul>
+
+<div class="tab-content" id="export-tab">
+    <h3>Export Options</h3>
+    <div class="export-buttons">
+        <button id="exportPNGPortrait" class="export-button">
+            <i class="fas fa-portrait"></i> PNG Portrait
+        </button>
+        <button id="exportPNGLandscape" class="export-button">
+            <i class="fas fa-landscape"></i> PNG Landscape
+        </button>
+        <button id="exportMP4Portrait" class="export-button">
+            <i class="fas fa-portrait"></i> MP4 Portrait
+        </button>
+        <button id="exportMP4Landscape" class="export-button">
+            <i class="fas fa-landscape"></i> MP4 Landscape
+        </button>
+    </div>
+    
+    <div class="animation-settings">
+        <h4>Animation Settings</h4>
+        <div class="animation-type-selection">
+            <label>Animation Type</label>
+            <div class="animation-type-grid">
+                <div class="animation-type-option selected" data-animation="rotation">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Rotation</span>
+                </div>
+                <div class="animation-type-option" data-animation="pulse">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                    <span>Pulse</span>
+                </div>
+                <div class="animation-type-option" data-animation="bounce">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>Bounce</span>
+                </div>
+                <div class="animation-type-option" data-animation="leftEnter">
+                    <i class="fas fa-arrow-right"></i>
+                    <span>Left Enter</span>
+                </div>
+                <div class="animation-type-option" data-animation="cameraOrbit">
+                    <i class="fas fa-video"></i>
+                    <span>Camera Orbit</span>
+                </div>
+            </div>
+        </div>
+        <label>Animation Duration (seconds)
+            <input type="range" id="animationDuration" min="3" max="10" step="0.5" value="5">
+            <span id="animationDurationValue">5s</span>
+        </label>
+        <label>Animation Speed
+            <input type="range" id="animationSpeed" min="0.5" max="3" step="0.1" value="1">
+            <span id="animationSpeedValue">1x</span>
+        </label>
+        <div style="margin-top:10px;">
+            <button id="previewAnimationPortrait" class="export-button">
+                <i class="fas fa-play"></i> Preview Portrait
+            </button>
+            <button id="previewAnimationLandscape" class="export-button">
+                <i class="fas fa-play"></i> Preview Landscape
+            </button>
+        </div>
+    </div>
+    
+    <div class="format-selection">
+        <label>
+            <input type="radio" name="videoFormat" value="mp4" checked>
+            MP4 (H.264) - Recommended
+        </label>
+        <label>
+            <input type="radio" name="videoFormat" value="webm">
+            WebM (VP9) - Fallback
+        </label>
+    </div>
+    <div class="hint">Video exports include your selected animation based on your settings.</div>
 </div>
 </div>
 </div>
@@ -947,7 +1043,7 @@ Live Update <span class="status-indicator"></span>
 <div class="mobile-panel" id="mobileToolsPanel">
 <div class="mobile-panel-content">
 <div class="mobile-panel-header">
-<div class="mobile-panel-title">Tools</div>
+<div class="mobile-panel-title">Design Tools</div>
 <button class="mobile-panel-close" id="closeToolsPanel">
 <i class="fas fa-times"></i>
 </button>
@@ -1073,7 +1169,7 @@ No active layer
 <div class="mobile-panel" id="mobileExportPanel">
 <div class="mobile-panel-content">
 <div class="mobile-panel-header">
-<div class="mobile-panel-title">Export</div>
+<div class="mobile-panel-title">Export Options</div>
 <button class="mobile-panel-close" id="closeExportPanel">
 <i class="fas fa-times"></i>
 </button>
@@ -1224,6 +1320,9 @@ const formatRadios = document.querySelectorAll('input[name="videoFormat"]');
 const mobileFormatRadios = document.querySelectorAll('input[name="mobileVideoFormat"]');
 // Model selection
 const modelOptions = document.querySelectorAll('.model-option');
+// Tab navigation
+const tabButtons = document.querySelectorAll('.tab-button');
+const tabContents = document.querySelectorAll('.tab-content');
 // Mobile controls
 const mobileModelBtn = document.getElementById('mobileModelBtn');
 const mobileToolsBtn = document.getElementById('mobileToolsBtn');
@@ -1346,6 +1445,20 @@ if (window.innerWidth <= 768 &&
 controlsPanel.classList.contains('open')) {
 controlsPanel.classList.remove('open');
 }
+});
+// Tab navigation
+tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const tabId = button.getAttribute('data-tab');
+        
+        // Remove active class from all tabs and contents
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
+        
+        // Add active class to clicked tab and corresponding content
+        button.classList.add('active');
+        document.getElementById(`${tabId}-tab`).classList.add('active');
+    });
 });
 // Mobile panel controls
 mobileModelBtn.addEventListener('click', () => {
