@@ -404,6 +404,22 @@ padding: 0;
 .deny-button:hover {
     background: #d32f2f;
 }
+/* Format selection */
+.format-selection {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 5px;
+}
+.format-selection label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+    cursor: pointer;
+}
+.format-selection input[type="radio"] {
+    margin-right: 8px;
+}
 /* Mobile responsiveness */
 @media (max-width: 768px) {
 :root { --panel-w: 280px; }
@@ -490,12 +506,10 @@ font-size: 9px;
 <a-entity light="type: directional; intensity:1" position="1 2 2"></a-entity>
 <a-entity light="type: ambient; intensity:0.6"></a-entity>
 </a-scene>
-
 <!-- Recording indicator -->
 <div id="recordingIndicator">
     <i class="fas fa-circle"></i> Recording...
 </div>
-
 <!-- Export progress modal -->
 <div id="exportProgress">
     <div class="progress-container">
@@ -506,7 +520,6 @@ font-size: 9px;
         <div class="progress-text" id="progressText">Preparing export...</div>
     </div>
 </div>
-
 <!-- Device Motion Permission Modal -->
 <div id="permissionModal">
     <div class="permission-container">
@@ -518,7 +531,6 @@ font-size: 9px;
         </div>
     </div>
 </div>
-
 <!-- App overlay -->
 <div class="app-container">
 <div class="app-header">
@@ -546,7 +558,6 @@ font-size: 9px;
 <input type="range" id="rotation" min="-180" max="180" step="1" value="0">
 <span id="rotationValue">0°</span>
 </label>
-
 <!-- Image Position and Size Controls -->
 <div id="imageControls" style="display:none;">
     <h4>Image Position & Size</h4>
@@ -575,7 +586,6 @@ font-size: 9px;
         </button>
     </div>
 </div>
-
 <div id="textControls" style="display:none;">
 <label>Text
 <input type="text" id="textInput" placeholder="Enter text..." />
@@ -628,6 +638,16 @@ Live Update <span class="status-indicator"></span>
 <button id="exportMP4Landscape" class="export-button">
 <i class="fas fa-landscape"></i> MP4 Landscape
 </button>
+</div>
+<div class="format-selection">
+    <label>
+        <input type="radio" name="videoFormat" value="mp4" checked>
+        MP4 (H.264) - Recommended
+    </label>
+    <label>
+        <input type="radio" name="videoFormat" value="webm">
+        WebM (VP9) - Fallback
+    </label>
 </div>
 <div class="hint">Video exports are 5 seconds long with automatic rotation.</div>
 </div>
@@ -699,7 +719,6 @@ Live Update <span class="status-indicator"></span>
 <input type="range" id="mobileRotation" min="-180" max="180" step="1" value="0">
 <span id="mobileRotationValue">0°</span>
 </label>
-
 <!-- Mobile Image Position and Size Controls -->
 <div id="mobileImageControls" style="display:none;">
     <h4>Image Position & Size</h4>
@@ -728,7 +747,6 @@ Live Update <span class="status-indicator"></span>
         </button>
     </div>
 </div>
-
 <label>
 <input type="checkbox" id="mobileUvVisible" checked> Show UV guide
 </label>
@@ -847,7 +865,6 @@ Live Update <span class="status-indicator"></span>
 <i class="fas fa-landscape"></i> PNG Landscape
 </button>
 </div>
-
 <h4 style="margin-top: 15px;">Video Export</h4>
 <div class="export-buttons">
 <button id="mobileExportMP4Portrait" class="export-button">
@@ -857,7 +874,16 @@ Live Update <span class="status-indicator"></span>
 <i class="fas fa-landscape"></i> MP4 Landscape
 </button>
 </div>
-
+<div class="format-selection">
+    <label>
+        <input type="radio" name="mobileVideoFormat" value="mp4" checked>
+        MP4 (H.264) - Recommended
+    </label>
+    <label>
+        <input type="radio" name="mobileVideoFormat" value="webm">
+        WebM (VP9) - Fallback
+    </label>
+</div>
 <div class="hint" style="margin-top: 15px;">
 <strong>Note:</strong> Video exports may take a moment to process depending on your device's performance.
 </div>
@@ -895,12 +921,10 @@ const menuToggle = document.getElementById('menuToggle');
 const editorToggle = document.getElementById('editorToggle');
 const controlsPanel = document.getElementById('controls');
 const editorWrap = document.getElementById('editorWrap');
-
 // Permission modal elements
 const permissionModal = document.getElementById('permissionModal');
 const allowPermission = document.getElementById('allowPermission');
 const denyPermission = document.getElementById('denyPermission');
-
 // Image position and size controls
 const imageControls = document.getElementById('imageControls');
 const imageX = document.getElementById('imageX');
@@ -909,7 +933,6 @@ const imageWidth = document.getElementById('imageWidth');
 const imageHeight = document.getElementById('imageHeight');
 const resetImageSize = document.getElementById('resetImageSize');
 const lockAspectRatio = document.getElementById('lockAspectRatio');
-
 // Export elements
 const exportPNGPortrait = document.getElementById('exportPNGPortrait');
 const exportPNGLandscape = document.getElementById('exportPNGLandscape');
@@ -919,7 +942,9 @@ const recordingIndicator = document.getElementById('recordingIndicator');
 const exportProgress = document.getElementById('exportProgress');
 const progressFill = document.getElementById('progressFill');
 const progressText = document.getElementById('progressText');
-
+// Format selection
+const formatRadios = document.querySelectorAll('input[name="videoFormat"]');
+const mobileFormatRadios = document.querySelectorAll('input[name="mobileVideoFormat"]');
 // Mobile controls
 const mobileToolsBtn = document.getElementById('mobileToolsBtn');
 const mobileTextBtn = document.getElementById('mobileTextBtn');
@@ -939,7 +964,6 @@ const closeImagePanel = document.getElementById('closeImagePanel');
 const closeColorPanel = document.getElementById('closeColorPanel');
 const closeSettingsPanel = document.getElementById('closeSettingsPanel');
 const closeExportPanel = document.getElementById('closeExportPanel');
-
 // Mobile panel elements
 const mobileUpload = document.getElementById('mobileUpload');
 const mobileAddTextBtn = document.getElementById('mobileAddTextBtn');
@@ -959,7 +983,6 @@ const mobileBgColor = document.getElementById('mobileBgColor');
 const mobileBgColorValue = document.getElementById('mobileBgColorValue');
 const mobileShirtColor = document.getElementById('mobileShirtColor');
 const mobileShirtColorValue = document.getElementById('mobileShirtColorValue');
-
 // Mobile image controls
 const mobileImageControls = document.getElementById('mobileImageControls');
 const mobileImageX = document.getElementById('mobileImageX');
@@ -968,13 +991,11 @@ const mobileImageWidth = document.getElementById('mobileImageWidth');
 const mobileImageHeight = document.getElementById('mobileImageHeight');
 const mobileResetImageSize = document.getElementById('mobileResetImageSize');
 const mobileLockAspectRatio = document.getElementById('mobileLockAspectRatio');
-
 // Mobile export elements
 const mobileExportPNGPortrait = document.getElementById('mobileExportPNGPortrait');
 const mobileExportPNGLandscape = document.getElementById('mobileExportPNGLandscape');
 const mobileExportMP4Portrait = document.getElementById('mobileExportMP4Portrait');
 const mobileExportMP4Landscape = document.getElementById('mobileExportMP4Landscape');
-
 // Device Motion Permission Handling
 function requestDeviceMotionPermission() {
     // Check if DeviceMotionEvent is supported
@@ -1011,7 +1032,6 @@ function requestDeviceMotionPermission() {
         permissionModal.style.display = 'none';
     }
 }
-
 // Request permission on page load
 window.addEventListener('load', function() {
     // Only request permission on mobile devices
@@ -1022,17 +1042,14 @@ window.addEventListener('load', function() {
         permissionModal.style.display = 'none';
     }
 });
-
 // Mobile menu toggle
 menuToggle.addEventListener('click', () => {
 controlsPanel.classList.toggle('open');
 });
-
 // Editor toggle
 editorToggle.addEventListener('click', () => {
 editorWrap.classList.toggle('hidden');
 });
-
 // Close menu when clicking outside on mobile
 document.addEventListener('click', (e) => {
 if (window.innerWidth <= 768 &&
@@ -1042,7 +1059,6 @@ controlsPanel.classList.contains('open')) {
 controlsPanel.classList.remove('open');
 }
 });
-
 // Mobile panel controls
 mobileToolsBtn.addEventListener('click', () => {
 mobileToolsPanel.classList.add('active');
@@ -1062,7 +1078,6 @@ mobileSettingsPanel.classList.add('active');
 mobileExportBtn.addEventListener('click', () => {
 mobileExportPanel.classList.add('active');
 });
-
 // Close mobile panels
 closeToolsPanel.addEventListener('click', () => {
 mobileToolsPanel.classList.remove('active');
@@ -1082,7 +1097,6 @@ mobileSettingsPanel.classList.remove('active');
 closeExportPanel.addEventListener('click', () => {
 mobileExportPanel.classList.remove('active');
 });
-
 // Close panels when clicking outside
 document.querySelectorAll('.mobile-panel').forEach(panel => {
 panel.addEventListener('click', (e) => {
@@ -1091,7 +1105,6 @@ panel.classList.remove('active');
 }
 });
 });
-
 // Sync mobile controls with desktop controls
 mobileOpacity.addEventListener('input', e => {
 opacitySlider.value = e.target.value;
@@ -1134,7 +1147,6 @@ shirtColorInput.value = e.target.value;
 mobileShirtColorValue.textContent = e.target.value;
 shirtColorInput.dispatchEvent(new Event('input'));
 });
-
 // Mobile button actions
 mobileAddTextBtn.addEventListener('click', () => {
 addTextBtn.click();
@@ -1148,7 +1160,6 @@ upload.files = e.target.files;
 upload.dispatchEvent(new Event('change'));
 mobileImagePanel.classList.remove('active');
 });
-
 // Mobile export button actions
 mobileExportPNGPortrait.addEventListener('click', () => {
 mobileExportPanel.classList.remove('active');
@@ -1166,7 +1177,6 @@ mobileExportMP4Landscape.addEventListener('click', () => {
 mobileExportPanel.classList.remove('active');
 recordVideo('landscape');
 });
-
 // Update mobile layer info
 function updateMobileLayerInfo() {
 if (activeLayer) {
@@ -1175,7 +1185,6 @@ mobileLayerInfo.textContent = `Active: ${activeLayer.type.toUpperCase()} x:${Mat
 mobileLayerInfo.textContent = 'No active layer';
 }
 }
-
 // simple editor + uv
 const uvMap = new Image(); uvMap.src = 'uvmap.png';
 let uvLoaded = false; uvMap.onload = () => { uvLoaded = true; redrawEditor(); };
@@ -1221,7 +1230,6 @@ ctx.strokeRect(L.x, L.y, L.w, L.h); ctx.restore();
 }
 }
 function redrawEditor(){ drawBackground(); drawUV(); layers.forEach(drawLayer); }
-
 // Function to get scaled coordinates from mouse/touch events
 function getScaledCoordinates(clientX, clientY) {
     const r = editorCanvas.getBoundingClientRect();
@@ -1232,7 +1240,6 @@ function getScaledCoordinates(clientX, clientY) {
         y: (clientY - r.top) * scaleY
     };
 }
-
 // Define setActiveLayer function
 function setActiveLayer(L) {
 activeLayer = L || null;
@@ -1297,7 +1304,6 @@ mobileFontColorValue.textContent = activeLayer.color || '#000';
 mobileFontColorValue.textContent = mobileFontColor.value;
 mobileBgColorValue.textContent = mobileBgColor.value;
 mobileShirtColorValue.textContent = mobileShirtColor.value;
-
 // Image position and size controls
 imageX.addEventListener('input', e => {
     if(!activeLayer || activeLayer.type !== 'image') return;
@@ -1306,7 +1312,6 @@ imageX.addEventListener('input', e => {
     redrawEditor();
     scheduleUpdate();
 });
-
 imageY.addEventListener('input', e => {
     if(!activeLayer || activeLayer.type !== 'image') return;
     activeLayer.y = parseInt(e.target.value);
@@ -1314,7 +1319,6 @@ imageY.addEventListener('input', e => {
     redrawEditor();
     scheduleUpdate();
 });
-
 imageWidth.addEventListener('input', e => {
     if(!activeLayer || activeLayer.type !== 'image') return;
     const newWidth = parseInt(e.target.value);
@@ -1328,7 +1332,6 @@ imageWidth.addEventListener('input', e => {
     redrawEditor();
     scheduleUpdate();
 });
-
 imageHeight.addEventListener('input', e => {
     if(!activeLayer || activeLayer.type !== 'image') return;
     const newHeight = parseInt(e.target.value);
@@ -1342,7 +1345,6 @@ imageHeight.addEventListener('input', e => {
     redrawEditor();
     scheduleUpdate();
 });
-
 resetImageSize.addEventListener('click', () => {
     if(!activeLayer || activeLayer.type !== 'image') return;
     if(activeLayer.originalWidth && activeLayer.originalHeight) {
@@ -1356,7 +1358,6 @@ resetImageSize.addEventListener('click', () => {
         scheduleUpdate();
     }
 });
-
 lockAspectRatio.addEventListener('click', () => {
     aspectRatioLocked = !aspectRatioLocked;
     if(aspectRatioLocked) {
@@ -1367,7 +1368,6 @@ lockAspectRatio.addEventListener('click', () => {
         lockAspectRatio.innerHTML = '<i class="fas fa-lock"></i> Lock Aspect';
     }
 });
-
 // Mobile image controls
 mobileImageX.addEventListener('input', e => {
     if(!activeLayer || activeLayer.type !== 'image') return;
@@ -1376,7 +1376,6 @@ mobileImageX.addEventListener('input', e => {
     redrawEditor();
     scheduleUpdate();
 });
-
 mobileImageY.addEventListener('input', e => {
     if(!activeLayer || activeLayer.type !== 'image') return;
     activeLayer.y = parseInt(e.target.value);
@@ -1384,7 +1383,6 @@ mobileImageY.addEventListener('input', e => {
     redrawEditor();
     scheduleUpdate();
 });
-
 mobileImageWidth.addEventListener('input', e => {
     if(!activeLayer || activeLayer.type !== 'image') return;
     const newWidth = parseInt(e.target.value);
@@ -1398,7 +1396,6 @@ mobileImageWidth.addEventListener('input', e => {
     redrawEditor();
     scheduleUpdate();
 });
-
 mobileImageHeight.addEventListener('input', e => {
     if(!activeLayer || activeLayer.type !== 'image') return;
     const newHeight = parseInt(e.target.value);
@@ -1412,7 +1409,6 @@ mobileImageHeight.addEventListener('input', e => {
     redrawEditor();
     scheduleUpdate();
 });
-
 mobileResetImageSize.addEventListener('click', () => {
     if(!activeLayer || activeLayer.type !== 'image') return;
     if(activeLayer.originalWidth && activeLayer.originalHeight) {
@@ -1426,7 +1422,6 @@ mobileResetImageSize.addEventListener('click', () => {
         scheduleUpdate();
     }
 });
-
 mobileLockAspectRatio.addEventListener('click', () => {
     aspectRatioLocked = !aspectRatioLocked;
     if(aspectRatioLocked) {
@@ -1439,7 +1434,6 @@ mobileLockAspectRatio.addEventListener('click', () => {
     // Sync desktop button
     lockAspectRatio.click();
 });
-
 // Function to update the T-shirt texture with current design
 function updateShirtTexture() {
 // Clear any pending update
@@ -1684,14 +1678,12 @@ redrawEditor();
 useTextureFlipY.addEventListener('change', () => {
 scheduleUpdate(); // Schedule update after changing flip mode
 });
-
 // Enhanced touch support for dragging and resizing layers
 let touchDragging = false;
 let touchResizing = false;
 let touchId = null;
 let touchDx = 0, touchDy = 0;
 let resizeHandle = null;
-
 editorCanvas.addEventListener('touchstart', e => {
 e.preventDefault();
 if (e.touches.length === 1) {
@@ -1736,7 +1728,6 @@ const my = coords.y;
     setActiveLayer(null);
 }
 });
-
 editorCanvas.addEventListener('touchmove', e => {
 e.preventDefault();
 if (e.touches.length === 1 && e.touches[0].identifier === touchId) {
@@ -1821,7 +1812,6 @@ if (e.touches.length === 1 && e.touches[0].identifier === touchId) {
     }
 }
 });
-
 editorCanvas.addEventListener('touchend', e => {
 if (touchDragging || touchResizing) {
     touchDragging = false;
@@ -1830,15 +1820,12 @@ if (touchDragging || touchResizing) {
     touchId = null;
 }
 });
-
 // Enhanced mouse support for dragging and resizing
 let dragging=false, resizing=false, dx=0, dy=0, resizeHandleType=null;
-
 editorCanvas.addEventListener('mousedown', e=>{
 const coords = getScaledCoordinates(e.clientX, e.clientY);
 const mx = coords.x;
 const my = coords.y;
-
 // Check if we're clicking on a resize handle
 if(activeLayer && activeLayer.type === 'image') {
     const handles = [
@@ -1858,7 +1845,6 @@ if(activeLayer && activeLayer.type === 'image') {
         }
     }
 }
-
 // Check if we're clicking on a layer
 for(let i=layers.length-1;i>=0;i--){ 
     const L=layers[i]; 
@@ -1872,13 +1858,11 @@ for(let i=layers.length-1;i>=0;i--){
 }
 setActiveLayer(null);
 });
-
 window.addEventListener('mousemove', e=>{
 if(!dragging && !resizing) return;
 const coords = getScaledCoordinates(e.clientX, e.clientY);
 const mx = coords.x;
 const my = coords.y;
-
 if(resizing && activeLayer && activeLayer.type === 'image') {
     // Handle resizing
     const newWidth = Math.max(10, mx - activeLayer.x);
@@ -1947,17 +1931,14 @@ if(resizing && activeLayer && activeLayer.type === 'image') {
     mobileImageX.value = Math.round(activeLayer.x);
     mobileImageY.value = Math.round(activeLayer.y);
 }
-
 redrawEditor();
 scheduleUpdate();
 });
-
 window.addEventListener('mouseup', ()=>{
 dragging=false;
 resizing=false;
 resizeHandleType=null;
 });
-
 // capture base texture from model
 let baseShirtTexture = null;
 document.querySelector('#tshirt').addEventListener('model-loaded', ev=>{
@@ -2058,7 +2039,6 @@ cam.z = Math.max(4, Math.min(10, cam.z));
 initialPinchDistance = currentDistance;
 }
 });
-
 // Export functionality
 // Function to show export progress
 function showExportProgress() {
@@ -2066,20 +2046,17 @@ exportProgress.style.display = 'flex';
 progressFill.style.width = '0%';
 progressText.textContent = 'Preparing export...';
 }
-
 // Function to update export progress
 function updateExportProgress(percent, message) {
 progressFill.style.width = `${percent}%`;
 progressText.textContent = message;
 }
-
 // Function to hide export progress
 function hideExportProgress() {
 setTimeout(() => {
 exportProgress.style.display = 'none';
 }, 1000);
 }
-
 // Function to capture scene as image - FIXED
 function captureSceneAsImage(orientation) {
     return new Promise((resolve) => {
@@ -2112,7 +2089,6 @@ function captureSceneAsImage(orientation) {
         });
     });
 }
-
 // Function to export as PNG
 async function exportAsPNG(orientation) {
 showExportProgress();
@@ -2137,88 +2113,110 @@ try {
     hideExportProgress();
 }
 }
-
 // Function to record video
 async function recordVideo(orientation) {
-showExportProgress();
-updateExportProgress(10, 'Preparing recording...');
+    showExportProgress();
+    updateExportProgress(10, 'Preparing recording...');
     
-const sceneCanvas = document.querySelector('a-scene').canvas;
-const stream = sceneCanvas.captureStream(30);
+    const sceneCanvas = document.querySelector('a-scene').canvas;
+    const stream = sceneCanvas.captureStream(30);
     
-// Set up media recorder
-let options = { mimeType: 'video/webm;codecs=vp9' };
-if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-    options = { mimeType: 'video/webm' };
-}
-if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-    options = { mimeType: 'video/mp4' };
-}
-    
-const mediaRecorder = new MediaRecorder(stream, options);
-const recordedChunks = [];
-    
-mediaRecorder.ondataavailable = (event) => {
-    if (event.data.size > 0) {
-        recordedChunks.push(event.data);
-    }
-};
-    
-mediaRecorder.onstop = () => {
-    updateExportProgress(80, 'Processing video...');
-    
-    const blob = new Blob(recordedChunks, {
-        type: options.mimeType
+    // Get selected format
+    let selectedFormat = 'mp4';
+    formatRadios.forEach(radio => {
+        if (radio.checked) selectedFormat = radio.value;
     });
     
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `vweave-${orientation}-${Date.now()}.${options.mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Set up media recorder with selected format
+    let options = {};
     
-    updateExportProgress(100, 'Export complete!');
-    hideExportProgress();
-    recordingIndicator.style.display = 'none';
-};
-    
-// Start recording
-updateExportProgress(30, 'Starting recording...');
-mediaRecorder.start();
-recordingIndicator.style.display = 'block';
-    
-// Update progress during recording
-let recordingTime = 0;
-const recordingInterval = setInterval(() => {
-    recordingTime += 1;
-    updateExportProgress(30 + (recordingTime * 10), `Recording... ${recordingTime}s`);
-    
-    if (recordingTime >= 5) {
-        clearInterval(recordingInterval);
-        mediaRecorder.stop();
+    if (selectedFormat === 'mp4') {
+        // Try MP4 first
+        options = { mimeType: 'video/mp4;codecs=avc1' };
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            options = { mimeType: 'video/mp4' };
+        }
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            // Fall back to WebM if MP4 not supported
+            options = { mimeType: 'video/webm;codecs=vp9' };
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                options = { mimeType: 'video/webm' };
+            }
+            selectedFormat = 'webm';
+        }
+    } else {
+        // WebM selected
+        options = { mimeType: 'video/webm;codecs=vp9' };
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            options = { mimeType: 'video/webm' };
+        }
     }
-}, 1000);
     
-// Rotate the shirt slowly during recording
-const originalRotation = tshirt.object3D.rotation.y;
-const rotationInterval = setInterval(() => {
-    tshirt.object3D.rotation.y += 0.02;
-}, 50);
+    const mediaRecorder = new MediaRecorder(stream, options);
+    const recordedChunks = [];
     
-// Clean up after recording
-mediaRecorder.addEventListener('stop', () => {
-    clearInterval(rotationInterval);
-    tshirt.object3D.rotation.y = originalRotation;
-});
+    mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+            recordedChunks.push(event.data);
+        }
+    };
+    
+    mediaRecorder.onstop = () => {
+        updateExportProgress(80, 'Processing video...');
+        
+        const blob = new Blob(recordedChunks, {
+            type: options.mimeType
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Set file extension based on actual format used
+        const extension = selectedFormat === 'mp4' ? 'mp4' : 'webm';
+        a.download = `vweave-${orientation}-${Date.now()}.${extension}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        updateExportProgress(100, 'Export complete!');
+        hideExportProgress();
+        recordingIndicator.style.display = 'none';
+    };
+    
+    // Start recording
+    updateExportProgress(30, 'Starting recording...');
+    mediaRecorder.start();
+    recordingIndicator.style.display = 'block';
+    
+    // Update progress during recording
+    let recordingTime = 0;
+    const recordingInterval = setInterval(() => {
+        recordingTime += 1;
+        updateExportProgress(30 + (recordingTime * 10), `Recording... ${recordingTime}s`);
+        
+        if (recordingTime >= 5) {
+            clearInterval(recordingInterval);
+            mediaRecorder.stop();
+        }
+    }, 1000);
+    
+    // Rotate the shirt slowly during recording
+    const originalRotation = tshirt.object3D.rotation.y;
+    const rotationInterval = setInterval(() => {
+        tshirt.object3D.rotation.y += 0.02;
+    }, 50);
+    
+    // Clean up after recording
+    mediaRecorder.addEventListener('stop', () => {
+        clearInterval(rotationInterval);
+        tshirt.object3D.rotation.y = originalRotation;
+    });
 }
-
 // Add event listeners for export buttons
 exportPNGPortrait.addEventListener('click', () => exportAsPNG('portrait'));
 exportPNGLandscape.addEventListener('click', () => exportAsPNG('landscape'));
 exportMP4Portrait.addEventListener('click', () => recordVideo('portrait'));
 exportMP4Landscape.addEventListener('click', () => recordVideo('landscape'));
-
 // initial draw
 // seed with one example layer so you can test quickly (optional)
 //layers.push({type:'text', text:'TEST', fontSize:48, font:'Arial', color:'#000', x:150, y:150, w:220, h:60, rotation:0, opacity:1, visible:true});
