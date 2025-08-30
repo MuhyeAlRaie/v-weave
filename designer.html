@@ -1,0 +1,2096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>V-Weave - 3D T-Shirt Designer</title>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root { --panel-w: 320px; --gap: 12px; --primary-color: #000; --secondary-color: #fff; }
+html,body { height:100%; margin:0; font-family:system-ui,Segoe UI,Roboto,Arial; background:#f5f5f5; color:#222; overflow: hidden; }
+/* Full-screen scene as background */
+a-scene {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+z-index: 0;
+}
+/* Main app container */
+.app-container {
+position: relative;
+z-index: 1;
+height: 100vh;
+display: flex;
+flex-direction: column;
+}
+/* Header with title and mobile menu button */
+.app-header {
+background: rgba(255, 255, 255, 0.95);
+padding: 10px 15px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+.app-title {
+font-size: 18px;
+font-weight: bold;
+color: #000;
+}
+.header-buttons {
+display: flex;
+gap: 10px;
+}
+.menu-toggle, .editor-toggle {
+background: var(--primary-color);
+color: var(--secondary-color);
+border: none;
+border-radius: 4px;
+padding: 8px 12px;
+cursor: pointer;
+font-size: 14px;
+}
+.menu-toggle:hover, .editor-toggle:hover {
+background: #333;
+}
+/* Main content area */
+.app-content {
+display: flex;
+flex: 1;
+overflow: hidden;
+}
+/* Controls panel */
+#controls {
+background: rgba(255, 255, 255, 0.95);
+width: var(--panel-w);
+padding: 14px;
+overflow-y: auto;
+box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+transition: transform 0.3s ease;
+}
+/* Editor area - now positioned at bottom right */
+#editorWrap {
+position: fixed;
+bottom: 20px;
+right: 20px;
+width: 300px;
+background: rgba(255, 255, 255, 0.9);
+border-radius: 8px;
+padding: 10px;
+box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+z-index: 5;
+transition: transform 0.3s ease, opacity 0.3s ease;
+}
+#editorWrap.hidden {
+transform: translateY(120%);
+opacity: 0;
+}
+#editorCanvas {
+border: 2px solid #000;
+background: #fff;
+width: 100%;
+height: auto;
+touch-action: none;
+cursor: crosshair;
+border-radius: 4px;
+}
+.editor-caption {
+color: #333;
+text-align: center;
+font-size: 12px;
+margin-top: 5px;
+}
+/* Controls styling */
+#controls h3 { margin:0 0 8px 0; font-size:16px; color: var(--primary-color); }
+#controls label { display:block; font-size:13px; margin-top:10px; color:#333; }
+.small { font-size:12px; color:#555; }
+.hint { font-size:12px; color:#666; margin-top:6px; }
+.color-row { display: flex; align-items: center; gap: 10px; }
+.color-row input[type="color"] { width: 50px; height: 30px; padding: 0; border: none; border-radius: 4px; cursor: pointer; }
+.status-indicator {
+display: inline-block;
+width: 10px;
+height: 10px;
+border-radius: 50%;
+background-color: var(--primary-color);
+margin-left: 10px;
+animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+0% { opacity: 1; }
+50% { opacity: 0.5; }
+100% { opacity: 1; }
+}
+/* Buttons */
+button {
+background: var(--primary-color);
+color: var(--secondary-color);
+border: none;
+border-radius: 4px;
+padding: 8px 12px;
+cursor: pointer;
+font-size: 14px;
+margin-right: 8px;
+margin-bottom: 8px;
+}
+button:hover {
+background: #333;
+}
+/* Inputs */
+input[type="file"], input[type="text"], input[type="number"], input[type="range"] {
+width: 100%;
+padding: 8px;
+margin-top: 4px;
+border: 1px solid #ddd;
+border-radius: 4px;
+box-sizing: border-box;
+}
+input[type="checkbox"] {
+margin-right: 8px;
+}
+/* Mobile bottom bar */
+.mobile-controls {
+display: none;
+position: fixed;
+bottom: 0;
+left: 0;
+width: 100%;
+background: rgba(255, 255, 255, 0.95);
+box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+z-index: 10;
+padding: 10px 0;
+}
+.mobile-controls-bar {
+display: flex;
+justify-content: space-around;
+align-items: center;
+}
+.mobile-control-item {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 5px;
+cursor: pointer;
+padding: 5px 10px;
+border-radius: 8px;
+transition: background 0.2s;
+}
+.mobile-control-item:hover {
+background: rgba(0, 0, 0, 0.1);
+}
+.mobile-control-item i {
+font-size: 20px;
+color: var(--primary-color);
+}
+.mobile-control-item span {
+font-size: 10px;
+color: #333;
+}
+/* Mobile panel overlays */
+.mobile-panel {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0, 0, 0, 0.5);
+z-index: 20;
+display: none;
+align-items: flex-end;
+}
+.mobile-panel.active {
+display: flex;
+}
+.mobile-panel-content {
+background: white;
+width: 100%;
+max-height: 70vh;
+border-radius: 20px 20px 0 0;
+padding: 20px;
+overflow-y: auto;
+box-shadow: 0 -5px 15px rgba(0,0,0,0.2);
+animation: slideUp 0.3s ease;
+}
+@keyframes slideUp {
+from { transform: translateY(100%); }
+to { transform: translateY(0); }
+}
+.mobile-panel-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 15px;
+padding-bottom: 10px;
+border-bottom: 1px solid #eee;
+}
+.mobile-panel-title {
+font-size: 18px;
+font-weight: bold;
+color: var(--primary-color);
+}
+.mobile-panel-close {
+background: none;
+border: none;
+font-size: 20px;
+color: #999;
+cursor: pointer;
+padding: 0;
+}
+/* Export section styles */
+.export-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+}
+.export-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+.export-button {
+    flex: 1;
+    min-width: 120px;
+    background: var(--primary-color);
+    color: var(--secondary-color);
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    text-align: center;
+}
+.export-button:hover {
+    background: #333;
+}
+.export-button i {
+    margin-right: 5px;
+}
+/* Recording indicator */
+#recordingIndicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    display: none;
+    z-index: 1000;
+    animation: pulse 1s infinite;
+}
+#recordingIndicator i {
+    margin-right: 5px;
+}
+/* Export progress modal */
+#exportProgress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+.progress-container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 400px;
+    text-align: center;
+}
+.progress-bar {
+    height: 20px;
+    background: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 15px 0;
+}
+.progress-fill {
+    height: 100%;
+    background: var(--primary-color);
+    width: 0%;
+    transition: width 0.3s;
+}
+.progress-text {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
+}
+/* Position and size controls */
+.position-size-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 5px;
+}
+.position-size-controls .control-group {
+    flex: 1;
+    min-width: 100px;
+}
+.position-size-controls .control-group label {
+    font-size: 12px;
+    margin-top: 0;
+    margin-bottom: 3px;
+}
+.position-size-controls input {
+    padding: 6px;
+    font-size: 13px;
+}
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+:root { --panel-w: 280px; }
+.app-content {
+flex-direction: column;
+}
+#controls {
+position: fixed;
+top: 0;
+left: 0;
+height: 100vh;
+z-index: 10;
+transform: translateX(-100%);
+}
+#controls.open {
+transform: translateX(0);
+}
+.menu-toggle {
+display: block;
+}
+#editorWrap {
+width: 250px;
+bottom: 70px; /* Adjusted for mobile controls bar */
+right: 10px;
+}
+.mobile-controls {
+display: block;
+}
+}
+/* For very small screens */
+@media (max-width: 480px) {
+:root { --panel-w: 240px; }
+.app-title {
+font-size: 16px;
+}
+#controls {
+padding: 10px;
+}
+#editorWrap {
+width: 200px;
+bottom: 70px; /* Adjusted for mobile controls bar */
+}
+.header-buttons {
+gap: 5px;
+}
+.menu-toggle, .editor-toggle {
+padding: 6px 10px;
+font-size: 12px;
+}
+.mobile-control-item i {
+font-size: 18px;
+}
+.mobile-control-item span {
+font-size: 9px;
+}
+.export-button {
+    min-width: 100px;
+    font-size: 12px;
+}
+.position-size-controls .control-group {
+    min-width: 80px;
+}
+}
+</style>
+</head>
+<body>
+<!-- Full-screen 3D scene as background -->
+<a-scene embedded background="color: #e9e9e9" renderer="preserveDrawingBuffer: true">
+<a-assets>
+<a-asset-item id="shirtModel" src="t-shirt.glb"></a-asset-item>
+<img id="uvAsset" src="uvmap.png" crossorigin="anonymous" style="display:none;">
+</a-assets>
+<a-entity id="shirtWrapper" position="0 -20 0">
+<a-entity id="tshirt" gltf-model="#shirtModel" scale="0.4 0.4 0.4"></a-entity>
+</a-entity>
+<a-entity id="camera" camera position="0 0 3" look-controls="enabled: false"></a-entity>
+<a-entity light="type: directional; intensity:1" position="1 2 2"></a-entity>
+<a-entity light="type: ambient; intensity:0.6"></a-entity>
+</a-scene>
+
+<!-- Recording indicator -->
+<div id="recordingIndicator">
+    <i class="fas fa-circle"></i> Recording...
+</div>
+
+<!-- Export progress modal -->
+<div id="exportProgress">
+    <div class="progress-container">
+        <h3>Exporting your design</h3>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">Preparing export...</div>
+    </div>
+</div>
+
+<!-- App overlay -->
+<div class="app-container">
+<div class="app-header">
+<div class="app-title">3D T-Shirt Designer</div>
+<div class="header-buttons">
+<button class="menu-toggle" id="menuToggle">Menu</button>
+<button class="editor-toggle" id="editorToggle">Editor</button>
+</div>
+</div>
+<div class="app-content">
+<div id="controls">
+<h3>Tools</h3>
+<label>Upload Image
+<input type="file" id="upload" accept="image/*">
+</label>
+<div style="margin-top:8px;">
+<button id="addTextBtn">Add Text</button>
+<button id="deleteLayerBtn">Delete Layer</button>
+</div>
+<label>Active Layer Opacity
+<input type="range" id="opacity" min="0" max="1" step="0.05" value="1">
+<span id="opacityValue">1.00</span>
+</label>
+<label>Active Layer Rotation
+<input type="range" id="rotation" min="-180" max="180" step="1" value="0">
+<span id="rotationValue">0°</span>
+</label>
+
+<!-- Image Position and Size Controls -->
+<div id="imageControls" style="display:none;">
+    <h4>Image Position & Size</h4>
+    <div class="position-size-controls">
+        <div class="control-group">
+            <label>X Position</label>
+            <input type="number" id="imageX" min="0" max="512" value="0">
+        </div>
+        <div class="control-group">
+            <label>Y Position</label>
+            <input type="number" id="imageY" min="0" max="512" value="0">
+        </div>
+        <div class="control-group">
+            <label>Width</label>
+            <input type="number" id="imageWidth" min="10" max="512" value="100">
+        </div>
+        <div class="control-group">
+            <label>Height</label>
+            <input type="number" id="imageHeight" min="10" max="512" value="100">
+        </div>
+    </div>
+    <div style="margin-top:8px;">
+        <button id="resetImageSize">Reset Size</button>
+        <button id="lockAspectRatio" style="background:#666;">
+            <i class="fas fa-lock"></i> Lock Aspect
+        </button>
+    </div>
+</div>
+
+<div id="textControls" style="display:none;">
+<label>Text
+<input type="text" id="textInput" placeholder="Enter text..." />
+</label>
+<label>Font Size
+<input type="number" id="fontSize" min="8" max="200" value="32" />
+</label>
+<label>Color
+<input type="color" id="fontColor" value="#000000" />
+</label>
+</div>
+<label>
+<input type="checkbox" id="uvVisible" checked> Show UV guide (editor only)
+</label>
+<label style="margin-top:10px;">
+<input type="checkbox" id="useTextureFlipY"> Use <code>texture.flipY = true</code> (don't flip canvas)
+</label>
+<div class="hint">Toggle if your model expects flipped textures. Try both modes.</div>
+<hr style="margin:12px 0">
+<h3>Scene Settings</h3>
+<label>Background Color
+<div class="color-row">
+<input type="color" id="bgColor" value="#e9e9e9">
+<span id="bgColorValue">#e9e9e9</span>
+</div>
+</label>
+<label>T-Shirt Base Color
+<div class="color-row">
+<input type="color" id="shirtColor" value="#ffffff">
+<span id="shirtColorValue">#ffffff</span>
+</div>
+</label>
+<div id="layerInfo" style="margin-top:8px">No active layer</div>
+<div style="margin-top:10px; text-align:center; color:#666; font-size:12px;">
+Live Update <span class="status-indicator"></span>
+</div>
+<hr style="margin:12px 0">
+<div class="export-section">
+<h3>Export</h3>
+<div class="export-buttons">
+<button id="exportPNGPortrait" class="export-button">
+<i class="fas fa-portrait"></i> PNG Portrait
+</button>
+<button id="exportPNGLandscape" class="export-button">
+<i class="fas fa-landscape"></i> PNG Landscape
+</button>
+<button id="exportMP4Portrait" class="export-button">
+<i class="fas fa-portrait"></i> MP4 Portrait
+</button>
+<button id="exportMP4Landscape" class="export-button">
+<i class="fas fa-landscape"></i> MP4 Landscape
+</button>
+</div>
+<div class="hint">Video exports are 5 seconds long with automatic rotation.</div>
+</div>
+<hr style="margin:12px 0">
+<div class="small">
+<strong>Notes:</strong>
+<ul>
+<li>Put <code>t-shirt.glb</code> and <code>uvmap.png</code> next to this file (or change paths in code).</li>
+<li>Changes are applied to the T-shirt in real-time.</li>
+<li>T-Shirt base color changes won't affect your design layers.</li>
+<li>Original shirt texture is preserved as background.</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- Editor canvas positioned at bottom right -->
+<div id="editorWrap">
+<canvas id="editorCanvas" width="512" height="512"></canvas>
+<div class="editor-caption">Editor (UV overlay is editor-only)</div>
+</div>
+</div>
+<!-- Mobile controls bar -->
+<div class="mobile-controls">
+<div class="mobile-controls-bar">
+<div class="mobile-control-item" id="mobileToolsBtn">
+<i class="fas fa-tools"></i>
+<span>Tools</span>
+</div>
+<div class="mobile-control-item" id="mobileTextBtn">
+<i class="fas fa-font"></i>
+<span>Add Text</span>
+</div>
+<div class="mobile-control-item" id="mobileImageBtn">
+<i class="fas fa-image"></i>
+<span>Add Image</span>
+</div>
+<div class="mobile-control-item" id="mobileColorBtn">
+<i class="fas fa-palette"></i>
+<span>Colors</span>
+</div>
+<div class="mobile-control-item" id="mobileSettingsBtn">
+<i class="fas fa-cog"></i>
+<span>Settings</span>
+</div>
+<div class="mobile-control-item" id="mobileExportBtn">
+<i class="fas fa-download"></i>
+<span>Export</span>
+</div>
+</div>
+</div>
+<!-- Mobile panel overlays -->
+<div class="mobile-panel" id="mobileToolsPanel">
+<div class="mobile-panel-content">
+<div class="mobile-panel-header">
+<div class="mobile-panel-title">Tools</div>
+<button class="mobile-panel-close" id="closeToolsPanel">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div>
+<button id="mobileDeleteLayerBtn" style="width: 100%; margin-bottom: 10px;">
+<i class="fas fa-trash"></i> Delete Active Layer
+</button>
+<label>Active Layer Opacity
+<input type="range" id="mobileOpacity" min="0" max="1" step="0.05" value="1">
+<span id="mobileOpacityValue">1.00</span>
+</label>
+<label>Active Layer Rotation
+<input type="range" id="mobileRotation" min="-180" max="180" step="1" value="0">
+<span id="mobileRotationValue">0°</span>
+</label>
+
+<!-- Mobile Image Position and Size Controls -->
+<div id="mobileImageControls" style="display:none;">
+    <h4>Image Position & Size</h4>
+    <div class="position-size-controls">
+        <div class="control-group">
+            <label>X Position</label>
+            <input type="number" id="mobileImageX" min="0" max="512" value="0">
+        </div>
+        <div class="control-group">
+            <label>Y Position</label>
+            <input type="number" id="mobileImageY" min="0" max="512" value="0">
+        </div>
+        <div class="control-group">
+            <label>Width</label>
+            <input type="number" id="mobileImageWidth" min="10" max="512" value="100">
+        </div>
+        <div class="control-group">
+            <label>Height</label>
+            <input type="number" id="mobileImageHeight" min="10" max="512" value="100">
+        </div>
+    </div>
+    <div style="margin-top:8px;">
+        <button id="mobileResetImageSize" style="width:48%;">Reset Size</button>
+        <button id="mobileLockAspectRatio" style="width:48%; background:#666;">
+            <i class="fas fa-lock"></i> Lock
+        </button>
+    </div>
+</div>
+
+<label>
+<input type="checkbox" id="mobileUvVisible" checked> Show UV guide
+</label>
+<label style="margin-top:10px;">
+<input type="checkbox" id="mobileUseTextureFlipY"> Use texture flipY
+</label>
+<div id="mobileLayerInfo" style="margin-top:15px; padding:10px; background:#f5f5f5; border-radius:4px;">
+No active layer
+</div>
+</div>
+</div>
+</div>
+<div class="mobile-panel" id="mobileTextPanel">
+<div class="mobile-panel-content">
+<div class="mobile-panel-header">
+<div class="mobile-panel-title">Add Text</div>
+<button class="mobile-panel-close" id="closeTextPanel">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div>
+<label>Text
+<input type="text" id="mobileTextInput" placeholder="Enter text..." />
+</label>
+<label>Font Size
+<input type="number" id="mobileFontSize" min="8" max="200" value="32" />
+</label>
+<label>Color
+<div class="color-row">
+<input type="color" id="mobileFontColor" value="#000000">
+<span id="mobileFontColorValue">#000000</span>
+</div>
+</label>
+<button id="mobileAddTextBtn" style="width: 100%; margin-top:15px;">
+<i class="fas fa-plus"></i> Add Text
+</button>
+</div>
+</div>
+</div>
+<div class="mobile-panel" id="mobileImagePanel">
+<div class="mobile-panel-content">
+<div class="mobile-panel-header">
+<div class="mobile-panel-title">Add Image</div>
+<button class="mobile-panel-close" id="closeImagePanel">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div>
+<label>Upload Image
+<input type="file" id="mobileUpload" accept="image/*">
+</label>
+</div>
+</div>
+</div>
+<div class="mobile-panel" id="mobileColorPanel">
+<div class="mobile-panel-content">
+<div class="mobile-panel-header">
+<div class="mobile-panel-title">Colors</div>
+<button class="mobile-panel-close" id="closeColorPanel">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div>
+<label>Background Color
+<div class="color-row">
+<input type="color" id="mobileBgColor" value="#e9e9e9">
+<span id="mobileBgColorValue">#e9e9e9</span>
+</div>
+</label>
+<label>T-Shirt Base Color
+<div class="color-row">
+<input type="color" id="mobileShirtColor" value="#ffffff">
+<span id="mobileShirtColorValue">#ffffff</span>
+</div>
+</label>
+</div>
+</div>
+</div>
+<div class="mobile-panel" id="mobileSettingsPanel">
+<div class="mobile-panel-content">
+<div class="mobile-panel-header">
+<div class="mobile-panel-title">Settings</div>
+<button class="mobile-panel-close" id="closeSettingsPanel">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="small">
+<strong>Notes:</strong>
+<ul>
+<li>Put <code>t-shirt.glb</code> and <code>uvmap.png</code> next to this file (or change paths in code).</li>
+<li>Changes are applied to the T-shirt in real-time.</li>
+<li>T-Shirt base color changes won't affect your design layers.</li>
+<li>Original shirt texture is preserved as background.</li>
+</ul>
+<div style="margin-top:15px; text-align:center; color:#666; font-size:12px;">
+Live Update <span class="status-indicator"></span>
+</div>
+</div>
+</div>
+</div>
+<div class="mobile-panel" id="mobileExportPanel">
+<div class="mobile-panel-content">
+<div class="mobile-panel-header">
+<div class="mobile-panel-title">Export</div>
+<button class="mobile-panel-close" id="closeExportPanel">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div>
+<h4>Image Export</h4>
+<div class="export-buttons">
+<button id="mobileExportPNGPortrait" class="export-button">
+<i class="fas fa-portrait"></i> PNG Portrait
+</button>
+<button id="mobileExportPNGLandscape" class="export-button">
+<i class="fas fa-landscape"></i> PNG Landscape
+</button>
+</div>
+
+<h4 style="margin-top: 15px;">Video Export</h4>
+<div class="export-buttons">
+<button id="mobileExportMP4Portrait" class="export-button">
+<i class="fas fa-portrait"></i> MP4 Portrait
+</button>
+<button id="mobileExportMP4Landscape" class="export-button">
+<i class="fas fa-landscape"></i> MP4 Landscape
+</button>
+</div>
+
+<div class="hint" style="margin-top: 15px;">
+<strong>Note:</strong> Video exports may take a moment to process depending on your device's performance.
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+// DOM refs
+const editorCanvas = document.getElementById('editorCanvas');
+const ctx = editorCanvas.getContext('2d');
+const upload = document.getElementById('upload');
+const addTextBtn = document.getElementById('addTextBtn');
+const deleteLayerBtn = document.getElementById('deleteLayerBtn');
+const opacitySlider = document.getElementById('opacity');
+const opacityValue = document.getElementById('opacityValue');
+const rotationSlider = document.getElementById('rotation');
+const rotationValue = document.getElementById('rotationValue');
+const uvToggle = document.getElementById('uvVisible');
+const useTextureFlipY = document.getElementById('useTextureFlipY');
+const textControls = document.getElementById('textControls');
+const textInput = document.getElementById('textInput');
+const fontSizeInput = document.getElementById('fontSize');
+const fontColorInput = document.getElementById('fontColor');
+const layerInfo = document.getElementById('layerInfo');
+const wrapper = document.querySelector('#shirtWrapper');
+const camera = document.querySelector('#camera');
+const tshirt = document.querySelector('#tshirt');
+const scene = document.querySelector('a-scene');
+const bgColorInput = document.getElementById('bgColor');
+const bgColorValue = document.getElementById('bgColorValue');
+const shirtColorInput = document.getElementById('shirtColor');
+const shirtColorValue = document.getElementById('shirtColorValue');
+const menuToggle = document.getElementById('menuToggle');
+const editorToggle = document.getElementById('editorToggle');
+const controlsPanel = document.getElementById('controls');
+const editorWrap = document.getElementById('editorWrap');
+
+// Image position and size controls
+const imageControls = document.getElementById('imageControls');
+const imageX = document.getElementById('imageX');
+const imageY = document.getElementById('imageY');
+const imageWidth = document.getElementById('imageWidth');
+const imageHeight = document.getElementById('imageHeight');
+const resetImageSize = document.getElementById('resetImageSize');
+const lockAspectRatio = document.getElementById('lockAspectRatio');
+
+// Export elements
+const exportPNGPortrait = document.getElementById('exportPNGPortrait');
+const exportPNGLandscape = document.getElementById('exportPNGLandscape');
+const exportMP4Portrait = document.getElementById('exportMP4Portrait');
+const exportMP4Landscape = document.getElementById('exportMP4Landscape');
+const recordingIndicator = document.getElementById('recordingIndicator');
+const exportProgress = document.getElementById('exportProgress');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
+
+// Mobile controls
+const mobileToolsBtn = document.getElementById('mobileToolsBtn');
+const mobileTextBtn = document.getElementById('mobileTextBtn');
+const mobileImageBtn = document.getElementById('mobileImageBtn');
+const mobileColorBtn = document.getElementById('mobileColorBtn');
+const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
+const mobileExportBtn = document.getElementById('mobileExportBtn');
+const mobileToolsPanel = document.getElementById('mobileToolsPanel');
+const mobileTextPanel = document.getElementById('mobileTextPanel');
+const mobileImagePanel = document.getElementById('mobileImagePanel');
+const mobileColorPanel = document.getElementById('mobileColorPanel');
+const mobileSettingsPanel = document.getElementById('mobileSettingsPanel');
+const mobileExportPanel = document.getElementById('mobileExportPanel');
+const closeToolsPanel = document.getElementById('closeToolsPanel');
+const closeTextPanel = document.getElementById('closeTextPanel');
+const closeImagePanel = document.getElementById('closeImagePanel');
+const closeColorPanel = document.getElementById('closeColorPanel');
+const closeSettingsPanel = document.getElementById('closeSettingsPanel');
+const closeExportPanel = document.getElementById('closeExportPanel');
+
+// Mobile panel elements
+const mobileUpload = document.getElementById('mobileUpload');
+const mobileAddTextBtn = document.getElementById('mobileAddTextBtn');
+const mobileDeleteLayerBtn = document.getElementById('mobileDeleteLayerBtn');
+const mobileOpacity = document.getElementById('mobileOpacity');
+const mobileOpacityValue = document.getElementById('mobileOpacityValue');
+const mobileRotation = document.getElementById('mobileRotation');
+const mobileRotationValue = document.getElementById('mobileRotationValue');
+const mobileUvVisible = document.getElementById('mobileUvVisible');
+const mobileUseTextureFlipY = document.getElementById('mobileUseTextureFlipY');
+const mobileTextInput = document.getElementById('mobileTextInput');
+const mobileFontSize = document.getElementById('mobileFontSize');
+const mobileFontColor = document.getElementById('mobileFontColor');
+const mobileFontColorValue = document.getElementById('mobileFontColorValue');
+const mobileLayerInfo = document.getElementById('mobileLayerInfo');
+const mobileBgColor = document.getElementById('mobileBgColor');
+const mobileBgColorValue = document.getElementById('mobileBgColorValue');
+const mobileShirtColor = document.getElementById('mobileShirtColor');
+const mobileShirtColorValue = document.getElementById('mobileShirtColorValue');
+
+// Mobile image controls
+const mobileImageControls = document.getElementById('mobileImageControls');
+const mobileImageX = document.getElementById('mobileImageX');
+const mobileImageY = document.getElementById('mobileImageY');
+const mobileImageWidth = document.getElementById('mobileImageWidth');
+const mobileImageHeight = document.getElementById('mobileImageHeight');
+const mobileResetImageSize = document.getElementById('mobileResetImageSize');
+const mobileLockAspectRatio = document.getElementById('mobileLockAspectRatio');
+
+// Mobile export elements
+const mobileExportPNGPortrait = document.getElementById('mobileExportPNGPortrait');
+const mobileExportPNGLandscape = document.getElementById('mobileExportPNGLandscape');
+const mobileExportMP4Portrait = document.getElementById('mobileExportMP4Portrait');
+const mobileExportMP4Landscape = document.getElementById('mobileExportMP4Landscape');
+
+// Mobile menu toggle
+menuToggle.addEventListener('click', () => {
+controlsPanel.classList.toggle('open');
+});
+
+// Editor toggle
+editorToggle.addEventListener('click', () => {
+editorWrap.classList.toggle('hidden');
+});
+
+// Close menu when clicking outside on mobile
+document.addEventListener('click', (e) => {
+if (window.innerWidth <= 768 &&
+!controlsPanel.contains(e.target) &&
+!menuToggle.contains(e.target) &&
+controlsPanel.classList.contains('open')) {
+controlsPanel.classList.remove('open');
+}
+});
+
+// Mobile panel controls
+mobileToolsBtn.addEventListener('click', () => {
+mobileToolsPanel.classList.add('active');
+});
+mobileTextBtn.addEventListener('click', () => {
+mobileTextPanel.classList.add('active');
+});
+mobileImageBtn.addEventListener('click', () => {
+mobileImagePanel.classList.add('active');
+});
+mobileColorBtn.addEventListener('click', () => {
+mobileColorPanel.classList.add('active');
+});
+mobileSettingsBtn.addEventListener('click', () => {
+mobileSettingsPanel.classList.add('active');
+});
+mobileExportBtn.addEventListener('click', () => {
+mobileExportPanel.classList.add('active');
+});
+
+// Close mobile panels
+closeToolsPanel.addEventListener('click', () => {
+mobileToolsPanel.classList.remove('active');
+});
+closeTextPanel.addEventListener('click', () => {
+mobileTextPanel.classList.remove('active');
+});
+closeImagePanel.addEventListener('click', () => {
+mobileImagePanel.classList.remove('active');
+});
+closeColorPanel.addEventListener('click', () => {
+mobileColorPanel.classList.remove('active');
+});
+closeSettingsPanel.addEventListener('click', () => {
+mobileSettingsPanel.classList.remove('active');
+});
+closeExportPanel.addEventListener('click', () => {
+mobileExportPanel.classList.remove('active');
+});
+
+// Close panels when clicking outside
+document.querySelectorAll('.mobile-panel').forEach(panel => {
+panel.addEventListener('click', (e) => {
+if (e.target === panel) {
+panel.classList.remove('active');
+}
+});
+});
+
+// Sync mobile controls with desktop controls
+mobileOpacity.addEventListener('input', e => {
+opacitySlider.value = e.target.value;
+opacityValue.textContent = e.target.value;
+opacitySlider.dispatchEvent(new Event('input'));
+});
+mobileRotation.addEventListener('input', e => {
+rotationSlider.value = e.target.value;
+rotationValue.textContent = e.target.value;
+rotationSlider.dispatchEvent(new Event('input'));
+});
+mobileUvVisible.addEventListener('change', e => {
+uvToggle.checked = e.target.checked;
+uvToggle.dispatchEvent(new Event('change'));
+});
+mobileUseTextureFlipY.addEventListener('change', e => {
+useTextureFlipY.checked = e.target.checked;
+useTextureFlipY.dispatchEvent(new Event('change'));
+});
+mobileTextInput.addEventListener('input', e => {
+textInput.value = e.target.value;
+textInput.dispatchEvent(new Event('input'));
+});
+mobileFontSize.addEventListener('input', e => {
+fontSizeInput.value = e.target.value;
+fontSizeInput.dispatchEvent(new Event('input'));
+});
+mobileFontColor.addEventListener('input', e => {
+fontColorInput.value = e.target.value;
+mobileFontColorValue.textContent = e.target.value;
+fontColorInput.dispatchEvent(new Event('input'));
+});
+mobileBgColor.addEventListener('input', e => {
+bgColorInput.value = e.target.value;
+mobileBgColorValue.textContent = e.target.value;
+bgColorInput.dispatchEvent(new Event('input'));
+});
+mobileShirtColor.addEventListener('input', e => {
+shirtColorInput.value = e.target.value;
+mobileShirtColorValue.textContent = e.target.value;
+shirtColorInput.dispatchEvent(new Event('input'));
+});
+
+// Mobile button actions
+mobileAddTextBtn.addEventListener('click', () => {
+addTextBtn.click();
+mobileTextPanel.classList.remove('active');
+});
+mobileDeleteLayerBtn.addEventListener('click', () => {
+deleteLayerBtn.click();
+});
+mobileUpload.addEventListener('change', e => {
+upload.files = e.target.files;
+upload.dispatchEvent(new Event('change'));
+mobileImagePanel.classList.remove('active');
+});
+
+// Mobile export button actions
+mobileExportPNGPortrait.addEventListener('click', () => {
+mobileExportPanel.classList.remove('active');
+exportAsPNG('portrait');
+});
+mobileExportPNGLandscape.addEventListener('click', () => {
+mobileExportPanel.classList.remove('active');
+exportAsPNG('landscape');
+});
+mobileExportMP4Portrait.addEventListener('click', () => {
+mobileExportPanel.classList.remove('active');
+recordVideo('portrait');
+});
+mobileExportMP4Landscape.addEventListener('click', () => {
+mobileExportPanel.classList.remove('active');
+recordVideo('landscape');
+});
+
+// Update mobile layer info
+function updateMobileLayerInfo() {
+if (activeLayer) {
+mobileLayerInfo.textContent = `Active: ${activeLayer.type.toUpperCase()} x:${Math.round(activeLayer.x)} y:${Math.round(activeLayer.y)} w:${Math.round(activeLayer.w)} h:${Math.round(activeLayer.h)}`;
+} else {
+mobileLayerInfo.textContent = 'No active layer';
+}
+}
+
+// simple editor + uv
+const uvMap = new Image(); uvMap.src = 'uvmap.png';
+let uvLoaded = false; uvMap.onload = () => { uvLoaded = true; redrawEditor(); };
+const layers = []; // basic layer structure
+let activeLayer = null;
+let shirtBaseColor = '#ffffff'; // Store the base color separately
+let updateTimeout = null; // For debouncing updates
+let isUpdating = false; // To prevent overlapping updates
+let aspectRatioLocked = false; // For aspect ratio lock
+let originalAspectRatio = 1; // Store original aspect ratio
+function deg2rad(d){ return d * Math.PI / 180; }
+function drawBackground(){ ctx.clearRect(0,0,512,512); ctx.fillStyle='#fff'; ctx.fillRect(0,0,512,512); }
+function drawUV(){ if(uvToggle.checked && uvLoaded){ ctx.globalAlpha=0.45; ctx.drawImage(uvMap,0,0,512,512); ctx.globalAlpha=1; } }
+function drawLayer(L){
+ctx.save();
+const cx = L.x + L.w/2, cy = L.y + L.h/2;
+ctx.translate(cx, cy);
+ctx.rotate(deg2rad(L.rotation||0));
+ctx.globalAlpha = L.opacity ?? 1;
+if(L.type === 'image' && L.img) ctx.drawImage(L.img, -L.w/2, -L.h/2, L.w, L.h);
+else if(L.type === 'text'){
+ctx.font = `${L.fontSize||32}px ${L.font||'Arial'}`;
+ctx.fillStyle = L.color || '#000';
+ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+ctx.fillText(L.text || 'Text', 0, 0, L.w);
+}
+ctx.restore(); ctx.globalAlpha = 1;
+if(L === activeLayer) {
+// simple bbox
+ctx.save(); ctx.strokeStyle='#000'; ctx.lineWidth=2;
+ctx.strokeRect(L.x, L.y, L.w, L.h); ctx.restore();
+    
+    // Draw resize handles for image layers
+    if(L.type === 'image') {
+        ctx.save(); ctx.fillStyle='#000';
+        // Corner handles
+        ctx.fillRect(L.x - 4, L.y - 4, 8, 8); // Top-left
+        ctx.fillRect(L.x + L.w - 4, L.y - 4, 8, 8); // Top-right
+        ctx.fillRect(L.x - 4, L.y + L.h - 4, 8, 8); // Bottom-left
+        ctx.fillRect(L.x + L.w - 4, L.y + L.h - 4, 8, 8); // Bottom-right
+        ctx.restore();
+    }
+}
+}
+function redrawEditor(){ drawBackground(); drawUV(); layers.forEach(drawLayer); }
+
+// Function to get scaled coordinates from mouse/touch events
+function getScaledCoordinates(clientX, clientY) {
+    const r = editorCanvas.getBoundingClientRect();
+    const scaleX = editorCanvas.width / r.width;
+    const scaleY = editorCanvas.height / r.height;
+    return {
+        x: (clientX - r.left) * scaleX,
+        y: (clientY - r.top) * scaleY
+    };
+}
+
+// Define setActiveLayer function
+function setActiveLayer(L) {
+activeLayer = L || null;
+if(activeLayer){
+opacitySlider.value = activeLayer.opacity ?? 1; opacityValue.textContent = (+opacitySlider.value).toFixed(2);
+rotationSlider.value = Math.round(activeLayer.rotation || 0); rotationValue.textContent = `${rotationSlider.value}°`;
+    
+    // Show/hide controls based on layer type
+    if(activeLayer.type === 'text'){ 
+        textControls.style.display='block'; 
+        imageControls.style.display='none';
+        mobileImageControls.style.display='none';
+        textInput.value = activeLayer.text || ''; 
+        fontSizeInput.value = activeLayer.fontSize || 32; 
+        fontColorInput.value = activeLayer.color || '#000'; 
+    } else if(activeLayer.type === 'image') {
+        textControls.style.display='none';
+        imageControls.style.display='block';
+        mobileImageControls.style.display='block';
+        
+        // Update image position and size controls
+        imageX.value = Math.round(activeLayer.x);
+        imageY.value = Math.round(activeLayer.y);
+        imageWidth.value = Math.round(activeLayer.w);
+        imageHeight.value = Math.round(activeLayer.h);
+        
+        // Update mobile image controls
+        mobileImageX.value = Math.round(activeLayer.x);
+        mobileImageY.value = Math.round(activeLayer.y);
+        mobileImageWidth.value = Math.round(activeLayer.w);
+        mobileImageHeight.value = Math.round(activeLayer.h);
+        
+        // Store original aspect ratio
+        originalAspectRatio = activeLayer.w / activeLayer.h;
+    }
+    
+    layerInfo.textContent = `Active: ${activeLayer.type.toUpperCase()} x:${Math.round(activeLayer.x)} y:${Math.round(activeLayer.y)} w:${Math.round(activeLayer.w)} h:${Math.round(activeLayer.h)}`;
+} else { 
+    textControls.style.display='none'; 
+    imageControls.style.display='none';
+    mobileImageControls.style.display='none';
+    layerInfo.textContent = 'No active layer'; 
+}
+redrawEditor();
+// Update mobile layer info
+updateMobileLayerInfo();
+// Update mobile controls values
+if (activeLayer) {
+mobileOpacity.value = activeLayer.opacity ?? 1;
+mobileOpacityValue.textContent = (activeLayer.opacity ?? 1).toFixed(2);
+mobileRotation.value = Math.round(activeLayer.rotation || 0);
+mobileRotationValue.textContent = `${Math.round(activeLayer.rotation || 0)}°`;
+if (activeLayer.type === 'text') {
+mobileTextInput.value = activeLayer.text || '';
+mobileFontSize.value = activeLayer.fontSize || 32;
+mobileFontColor.value = activeLayer.color || '#000';
+mobileFontColorValue.textContent = activeLayer.color || '#000';
+}
+}
+}
+// Update mobile color values
+mobileFontColorValue.textContent = mobileFontColor.value;
+mobileBgColorValue.textContent = mobileBgColor.value;
+mobileShirtColorValue.textContent = mobileShirtColor.value;
+
+// Image position and size controls
+imageX.addEventListener('input', e => {
+    if(!activeLayer || activeLayer.type !== 'image') return;
+    activeLayer.x = parseInt(e.target.value);
+    mobileImageX.value = e.target.value;
+    redrawEditor();
+    scheduleUpdate();
+});
+
+imageY.addEventListener('input', e => {
+    if(!activeLayer || activeLayer.type !== 'image') return;
+    activeLayer.y = parseInt(e.target.value);
+    mobileImageY.value = e.target.value;
+    redrawEditor();
+    scheduleUpdate();
+});
+
+imageWidth.addEventListener('input', e => {
+    if(!activeLayer || activeLayer.type !== 'image') return;
+    const newWidth = parseInt(e.target.value);
+    if(aspectRatioLocked) {
+        activeLayer.h = newWidth / originalAspectRatio;
+        imageHeight.value = Math.round(activeLayer.h);
+        mobileImageHeight.value = Math.round(activeLayer.h);
+    }
+    activeLayer.w = newWidth;
+    mobileImageWidth.value = e.target.value;
+    redrawEditor();
+    scheduleUpdate();
+});
+
+imageHeight.addEventListener('input', e => {
+    if(!activeLayer || activeLayer.type !== 'image') return;
+    const newHeight = parseInt(e.target.value);
+    if(aspectRatioLocked) {
+        activeLayer.w = newHeight * originalAspectRatio;
+        imageWidth.value = Math.round(activeLayer.w);
+        mobileImageWidth.value = Math.round(activeLayer.w);
+    }
+    activeLayer.h = newHeight;
+    mobileImageHeight.value = e.target.value;
+    redrawEditor();
+    scheduleUpdate();
+});
+
+resetImageSize.addEventListener('click', () => {
+    if(!activeLayer || activeLayer.type !== 'image') return;
+    if(activeLayer.originalWidth && activeLayer.originalHeight) {
+        activeLayer.w = activeLayer.originalWidth;
+        activeLayer.h = activeLayer.originalHeight;
+        imageWidth.value = Math.round(activeLayer.w);
+        imageHeight.value = Math.round(activeLayer.h);
+        mobileImageWidth.value = Math.round(activeLayer.w);
+        mobileImageHeight.value = Math.round(activeLayer.h);
+        redrawEditor();
+        scheduleUpdate();
+    }
+});
+
+lockAspectRatio.addEventListener('click', () => {
+    aspectRatioLocked = !aspectRatioLocked;
+    if(aspectRatioLocked) {
+        lockAspectRatio.style.background = '#f44336';
+        lockAspectRatio.innerHTML = '<i class="fas fa-lock-open"></i> Unlock Aspect';
+    } else {
+        lockAspectRatio.style.background = '#666';
+        lockAspectRatio.innerHTML = '<i class="fas fa-lock"></i> Lock Aspect';
+    }
+});
+
+// Mobile image controls
+mobileImageX.addEventListener('input', e => {
+    if(!activeLayer || activeLayer.type !== 'image') return;
+    activeLayer.x = parseInt(e.target.value);
+    imageX.value = e.target.value;
+    redrawEditor();
+    scheduleUpdate();
+});
+
+mobileImageY.addEventListener('input', e => {
+    if(!activeLayer || activeLayer.type !== 'image') return;
+    activeLayer.y = parseInt(e.target.value);
+    imageY.value = e.target.value;
+    redrawEditor();
+    scheduleUpdate();
+});
+
+mobileImageWidth.addEventListener('input', e => {
+    if(!activeLayer || activeLayer.type !== 'image') return;
+    const newWidth = parseInt(e.target.value);
+    if(aspectRatioLocked) {
+        activeLayer.h = newWidth / originalAspectRatio;
+        imageHeight.value = Math.round(activeLayer.h);
+        mobileImageHeight.value = Math.round(activeLayer.h);
+    }
+    activeLayer.w = newWidth;
+    imageWidth.value = e.target.value;
+    redrawEditor();
+    scheduleUpdate();
+});
+
+mobileImageHeight.addEventListener('input', e => {
+    if(!activeLayer || activeLayer.type !== 'image') return;
+    const newHeight = parseInt(e.target.value);
+    if(aspectRatioLocked) {
+        activeLayer.w = newHeight * originalAspectRatio;
+        imageWidth.value = Math.round(activeLayer.w);
+        mobileImageWidth.value = Math.round(activeLayer.w);
+    }
+    activeLayer.h = newHeight;
+    imageHeight.value = e.target.value;
+    redrawEditor();
+    scheduleUpdate();
+});
+
+mobileResetImageSize.addEventListener('click', () => {
+    if(!activeLayer || activeLayer.type !== 'image') return;
+    if(activeLayer.originalWidth && activeLayer.originalHeight) {
+        activeLayer.w = activeLayer.originalWidth;
+        activeLayer.h = activeLayer.originalHeight;
+        imageWidth.value = Math.round(activeLayer.w);
+        imageHeight.value = Math.round(activeLayer.h);
+        mobileImageWidth.value = Math.round(activeLayer.w);
+        mobileImageHeight.value = Math.round(activeLayer.h);
+        redrawEditor();
+        scheduleUpdate();
+    }
+});
+
+mobileLockAspectRatio.addEventListener('click', () => {
+    aspectRatioLocked = !aspectRatioLocked;
+    if(aspectRatioLocked) {
+        mobileLockAspectRatio.style.background = '#f44336';
+        mobileLockAspectRatio.innerHTML = '<i class="fas fa-lock-open"></i> Unlock';
+    } else {
+        mobileLockAspectRatio.style.background = '#666';
+        mobileLockAspectRatio.innerHTML = '<i class="fas fa-lock"></i> Lock';
+    }
+    // Sync desktop button
+    lockAspectRatio.click();
+});
+
+// Function to update the T-shirt texture with current design
+function updateShirtTexture() {
+// Clear any pending update
+if (updateTimeout) {
+clearTimeout(updateTimeout);
+updateTimeout = null;
+}
+// If already updating, schedule another update
+if (isUpdating) {
+updateTimeout = setTimeout(updateShirtTexture, 100);
+return;
+}
+isUpdating = true;
+try {
+const texW = 2048, texH = 2048;
+const texCanvas = document.createElement('canvas'); texCanvas.width = texW; texCanvas.height = texH;
+const tctx = texCanvas.getContext('2d');
+const useFlipY = useTextureFlipY.checked;
+if (useFlipY) {
+// Mode A: NO canvas flip, set texture.flipY = true
+// Fill with shirt base color
+tctx.fillStyle = shirtBaseColor;
+tctx.fillRect(0, 0, texW, texH);
+// Draw the base shirt texture if available
+if (baseShirtTexture && baseShirtTexture.image) {
+tctx.globalCompositeOperation = 'multiply';
+tctx.drawImage(baseShirtTexture.image, 0, 0, texW, texH);
+tctx.globalCompositeOperation = 'source-over'; // Reset composite operation
+}
+const scaleX = texW / editorCanvas.width, scaleY = texH / editorCanvas.height;
+layers.forEach(L => {
+if(!L.visible) return;
+tctx.save();
+const cx = (L.x + L.w/2) * scaleX;
+const cy = (L.y + L.h/2) * scaleY;
+tctx.translate(cx, cy);
+tctx.rotate(deg2rad(L.rotation||0));
+tctx.globalAlpha = L.opacity ?? 1;
+if(L.type === 'image' && L.img) tctx.drawImage(L.img, -L.w/2*scaleX, -L.h/2*scaleY, L.w*scaleX, L.h*scaleY);
+else if(L.type === 'text'){
+const px=(L.fontSize||32)*scaleY;
+tctx.font=`${px}px ${L.font||'Arial'}`;
+tctx.fillStyle=L.color||'#000';
+tctx.textAlign='center';
+tctx.textBaseline='middle';
+tctx.fillText(L.text||'Text',0,0,L.w*scaleX);
+}
+tctx.restore();
+});
+const texture = new THREE.CanvasTexture(texCanvas);
+texture.encoding = THREE.sRGBEncoding;
+texture.flipY = true; // <-- important for this mode
+texture.needsUpdate = true;
+// Apply texture while preserving the base color
+const shirt = document.querySelector('#tshirt').getObject3D('mesh');
+if(shirt){
+shirt.traverse(node => {
+if(node.isMesh && node.material){
+// Create a new material that combines the base color with the new texture
+const newMaterial = node.material.clone();
+newMaterial.map = texture;
+newMaterial.color = new THREE.Color(0xffffff); // Use white so texture colors show correctly
+newMaterial.transparent = true;
+newMaterial.needsUpdate = true;
+node.material = newMaterial;
+}
+});
+}
+} else {
+// Mode B: FLIP canvas vertically, set texture.flipY = false
+tctx.save();
+tctx.translate(0, texH);
+tctx.scale(1, -1);
+// Fill with shirt base color
+tctx.fillStyle = shirtBaseColor;
+tctx.fillRect(0, 0, texW, texH);
+// Draw the base shirt texture if available
+if (baseShirtTexture && baseShirtTexture.image) {
+tctx.globalCompositeOperation = 'multiply';
+tctx.drawImage(baseShirtTexture.image, 0, 0, texW, texH);
+tctx.globalCompositeOperation = 'source-over'; // Reset composite operation
+}
+const scaleX = texW / editorCanvas.width, scaleY = texH / editorCanvas.height;
+layers.forEach(L => {
+if(!L.visible) return;
+tctx.save();
+const cx = (L.x + L.w/2) * scaleX;
+const cy = (L.y + L.h/2) * scaleY;
+tctx.translate(cx, cy);
+tctx.rotate(deg2rad(L.rotation||0));
+tctx.globalAlpha = L.opacity ?? 1;
+if(L.type === 'image' && L.img) {
+tctx.drawImage(L.img, -L.w/2*scaleX, -L.h/2*scaleY, L.w*scaleX, L.h*scaleY);
+} else if(L.type === 'text'){
+const px=(L.fontSize||32)*scaleY;
+tctx.font=`${px}px ${L.font||'Arial'}`;
+tctx.fillStyle=L.color||'#000';
+tctx.textAlign='center'; tctx.textBaseline='middle';
+tctx.fillText(L.text||'Text',0,0,L.w*scaleX);
+}
+tctx.restore();
+});
+tctx.restore();
+const texture = new THREE.CanvasTexture(texCanvas);
+texture.encoding = THREE.sRGBEncoding;
+texture.flipY = false; // <-- important for this mode
+texture.needsUpdate = true;
+// Apply texture while preserving the base color
+const shirt = document.querySelector('#tshirt').getObject3D('mesh');
+if(shirt){
+shirt.traverse(node => {
+if(node.isMesh && node.material){
+// Create a new material that combines the base color with the new texture
+const newMaterial = node.material.clone();
+newMaterial.map = texture;
+newMaterial.color = new THREE.Color(0xffffff); // Use white so texture colors show correctly
+newMaterial.transparent = true;
+newMaterial.needsUpdate = true;
+node.material = newMaterial;
+}
+});
+}
+}
+} catch(err){
+console.error('Error during update:', err);
+} finally {
+isUpdating = false;
+}
+}
+// Schedule an update to the T-shirt texture
+function scheduleUpdate() {
+// Clear any existing timeout
+if (updateTimeout) {
+clearTimeout(updateTimeout);
+}
+// Set a new timeout to update the texture
+updateTimeout = setTimeout(updateShirtTexture, 100);
+}
+// simple layer add
+upload.addEventListener('change', e=>{
+const f = e.target.files[0]; if(!f) return;
+const img = new Image();
+img.onload = ()=> {
+    // Calculate initial size to fit within canvas while maintaining aspect ratio
+    const maxSize = 200;
+    let width = img.width;
+    let height = img.height;
+    
+    if (width > maxSize || height > maxSize) {
+        const ratio = Math.min(maxSize / width, maxSize / height);
+        width *= ratio;
+        height *= ratio;
+    }
+    
+    const L = { 
+        type:'image', 
+        img, 
+        x: (512 - width) / 2, 
+        y: (512 - height) / 2, 
+        w: width, 
+        h: height, 
+        rotation:0, 
+        opacity:1, 
+        visible:true,
+        originalWidth: width,
+        originalHeight: height
+    };
+    layers.push(L);
+    setActiveLayer(L);
+    console.log('image loaded');
+    scheduleUpdate(); // Schedule update after adding layer
+};
+img.onerror = ()=> console.error('image load failed');
+img.src = URL.createObjectURL(f); e.target.value = '';
+});
+addTextBtn.addEventListener('click', ()=>{
+const L = { type:'text', text:'Hello', fontSize:32, font:'Arial', color:'#000', x:120, y:120, w:220, h:60, rotation:0, opacity:1, visible:true };
+layers.push(L);
+setActiveLayer(L);
+scheduleUpdate(); // Schedule update after adding layer
+});
+deleteLayerBtn.addEventListener('click', ()=>{
+if(!activeLayer) return;
+const idx = layers.indexOf(activeLayer);
+if(idx>=0){
+layers.splice(idx,1);
+setActiveLayer(layers[layers.length-1]||null);
+scheduleUpdate(); // Schedule update after deleting layer
+}
+});
+opacitySlider.addEventListener('input', e=>{
+if(!activeLayer) return;
+activeLayer.opacity = parseFloat(e.target.value);
+opacityValue.textContent = activeLayer.opacity.toFixed(2);
+redrawEditor();
+scheduleUpdate(); // Schedule update after changing opacity
+});
+rotationSlider.addEventListener('input', e=>{
+if(!activeLayer) return;
+activeLayer.rotation = parseFloat(e.target.value);
+rotationValue.textContent = `${Math.round(activeLayer.rotation)}°`;
+redrawEditor();
+scheduleUpdate(); // Schedule update after changing rotation
+});
+textInput.addEventListener('input', e=>{
+if(!activeLayer||activeLayer.type!=='text') return;
+activeLayer.text = e.target.value;
+redrawEditor();
+scheduleUpdate(); // Schedule update after changing text
+});
+fontSizeInput.addEventListener('input', e=>{
+if(!activeLayer||activeLayer.type!=='text') return;
+activeLayer.fontSize = parseInt(e.target.value||32,10);
+redrawEditor();
+scheduleUpdate(); // Schedule update after changing font size
+});
+fontColorInput.addEventListener('input', e=>{
+if(!activeLayer||activeLayer.type!=='text') return;
+activeLayer.color = e.target.value;
+redrawEditor();
+scheduleUpdate(); // Schedule update after changing font color
+});
+// Background color change
+bgColorInput.addEventListener('input', e => {
+const color = e.target.value;
+bgColorValue.textContent = color;
+scene.setAttribute('background', `color: ${color}`);
+});
+// T-shirt base color change
+shirtColorInput.addEventListener('input', e => {
+const color = e.target.value;
+shirtColorValue.textContent = color;
+shirtBaseColor = color; // Store the base color
+// Schedule update to apply the new base color
+scheduleUpdate();
+});
+// UV visibility toggle
+uvToggle.addEventListener('change', () => {
+redrawEditor();
+});
+// Texture flip mode toggle
+useTextureFlipY.addEventListener('change', () => {
+scheduleUpdate(); // Schedule update after changing flip mode
+});
+
+// Enhanced touch support for dragging and resizing layers
+let touchDragging = false;
+let touchResizing = false;
+let touchId = null;
+let touchDx = 0, touchDy = 0;
+let resizeHandle = null;
+
+editorCanvas.addEventListener('touchstart', e => {
+e.preventDefault();
+if (e.touches.length === 1) {
+const touch = e.touches[0];
+const coords = getScaledCoordinates(touch.clientX, touch.clientY);
+const mx = coords.x;
+const my = coords.y;
+    
+    // Check if we're touching a resize handle
+    if(activeLayer && activeLayer.type === 'image') {
+        const handles = [
+            {x: activeLayer.x - 4, y: activeLayer.y - 4, w: 8, h: 8, type: 'tl'},
+            {x: activeLayer.x + activeLayer.w - 4, y: activeLayer.y - 4, w: 8, h: 8, type: 'tr'},
+            {x: activeLayer.x - 4, y: activeLayer.y + activeLayer.h - 4, w: 8, h: 8, type: 'bl'},
+            {x: activeLayer.x + activeLayer.w - 4, y: activeLayer.y + activeLayer.h - 4, w: 8, h: 8, type: 'br'}
+        ];
+        
+        for(const handle of handles) {
+            if(mx >= handle.x && mx <= handle.x + handle.w && my >= handle.y && my <= handle.y + handle.h) {
+                touchResizing = true;
+                resizeHandle = handle.type;
+                touchId = touch.identifier;
+                touchDx = mx - activeLayer.x;
+                touchDy = my - activeLayer.y;
+                return;
+            }
+        }
+    }
+    
+    // Check if we're touching a layer
+    for (let i = layers.length - 1; i >= 0; i--) {
+        const L = layers[i];
+        if (mx >= L.x && mx <= L.x + L.w && my >= L.y && my <= L.y + L.h) {
+            setActiveLayer(L);
+            touchDragging = true;
+            touchId = touch.identifier;
+            touchDx = mx - L.x;
+            touchDy = my - L.y;
+            return;
+        }
+    }
+    setActiveLayer(null);
+}
+});
+
+editorCanvas.addEventListener('touchmove', e => {
+e.preventDefault();
+if (e.touches.length === 1 && e.touches[0].identifier === touchId) {
+    const touch = e.touches[0];
+    const coords = getScaledCoordinates(touch.clientX, touch.clientY);
+    const mx = coords.x;
+    const my = coords.y;
+    
+    if (touchResizing && activeLayer && activeLayer.type === 'image') {
+        // Handle resizing
+        const newWidth = Math.max(10, mx - activeLayer.x);
+        const newHeight = Math.max(10, my - activeLayer.y);
+        
+        if(aspectRatioLocked) {
+            if(resizeHandle === 'br' || resizeHandle === 'tl') {
+                const ratio = originalAspectRatio;
+                if(newWidth / newHeight > ratio) {
+                    activeLayer.w = newWidth;
+                    activeLayer.h = newWidth / ratio;
+                } else {
+                    activeLayer.w = newHeight * ratio;
+                    activeLayer.h = newHeight;
+                }
+            } else {
+                // For other handles, maintain aspect ratio
+                const ratio = originalAspectRatio;
+                if(resizeHandle === 'tr') {
+                    activeLayer.w = newWidth;
+                    activeLayer.h = newWidth / ratio;
+                    activeLayer.y = activeLayer.y + activeLayer.h - newHeight;
+                } else if(resizeHandle === 'bl') {
+                    activeLayer.h = newHeight;
+                    activeLayer.w = newHeight * ratio;
+                    activeLayer.x = activeLayer.x + activeLayer.w - newWidth;
+                }
+            }
+        } else {
+            if(resizeHandle === 'br') {
+                activeLayer.w = newWidth;
+                activeLayer.h = newHeight;
+            } else if(resizeHandle === 'tl') {
+                activeLayer.w = activeLayer.x + activeLayer.w - mx;
+                activeLayer.h = activeLayer.y + activeLayer.h - my;
+                activeLayer.x = mx;
+                activeLayer.y = my;
+            } else if(resizeHandle === 'tr') {
+                activeLayer.w = newWidth;
+                activeLayer.h = activeLayer.y + activeLayer.h - my;
+                activeLayer.y = my;
+            } else if(resizeHandle === 'bl') {
+                activeLayer.w = activeLayer.x + activeLayer.w - mx;
+                activeLayer.h = newHeight;
+                activeLayer.x = mx;
+            }
+        }
+        
+        // Update controls
+        imageX.value = Math.round(activeLayer.x);
+        imageY.value = Math.round(activeLayer.y);
+        imageWidth.value = Math.round(activeLayer.w);
+        imageHeight.value = Math.round(activeLayer.h);
+        mobileImageX.value = Math.round(activeLayer.x);
+        mobileImageY.value = Math.round(activeLayer.y);
+        mobileImageWidth.value = Math.round(activeLayer.w);
+        mobileImageHeight.value = Math.round(activeLayer.h);
+        
+        redrawEditor();
+        scheduleUpdate();
+    } else if (touchDragging && activeLayer) {
+        // Handle dragging
+        activeLayer.x = mx - touchDx;
+        activeLayer.y = my - touchDy;
+        
+        // Update controls
+        imageX.value = Math.round(activeLayer.x);
+        imageY.value = Math.round(activeLayer.y);
+        mobileImageX.value = Math.round(activeLayer.x);
+        mobileImageY.value = Math.round(activeLayer.y);
+        
+        redrawEditor();
+        scheduleUpdate();
+    }
+}
+});
+
+editorCanvas.addEventListener('touchend', e => {
+if (touchDragging || touchResizing) {
+    touchDragging = false;
+    touchResizing = false;
+    resizeHandle = null;
+    touchId = null;
+}
+});
+
+// Enhanced mouse support for dragging and resizing
+let dragging=false, resizing=false, dx=0, dy=0, resizeHandleType=null;
+
+editorCanvas.addEventListener('mousedown', e=>{
+const coords = getScaledCoordinates(e.clientX, e.clientY);
+const mx = coords.x;
+const my = coords.y;
+
+// Check if we're clicking on a resize handle
+if(activeLayer && activeLayer.type === 'image') {
+    const handles = [
+        {x: activeLayer.x - 4, y: activeLayer.y - 4, w: 8, h: 8, type: 'tl'},
+        {x: activeLayer.x + activeLayer.w - 4, y: activeLayer.y - 4, w: 8, h: 8, type: 'tr'},
+        {x: activeLayer.x - 4, y: activeLayer.y + activeLayer.h - 4, w: 8, h: 8, type: 'bl'},
+        {x: activeLayer.x + activeLayer.w - 4, y: activeLayer.y + activeLayer.h - 4, w: 8, h: 8, type: 'br'}
+    ];
+    
+    for(const handle of handles) {
+        if(mx >= handle.x && mx <= handle.x + handle.w && my >= handle.y && my <= handle.y + handle.h) {
+            resizing = true;
+            resizeHandleType = handle.type;
+            dx = mx - activeLayer.x;
+            dy = my - activeLayer.y;
+            return;
+        }
+    }
+}
+
+// Check if we're clicking on a layer
+for(let i=layers.length-1;i>=0;i--){ 
+    const L=layers[i]; 
+    if(mx>=L.x && mx<=L.x+L.w && my>=L.y && my<=L.y+L.h){ 
+        setActiveLayer(L); 
+        dragging=true; 
+        dx=mx-L.x; 
+        dy=my-L.y; 
+        return; 
+    } 
+}
+setActiveLayer(null);
+});
+
+window.addEventListener('mousemove', e=>{
+if(!dragging && !resizing) return;
+const coords = getScaledCoordinates(e.clientX, e.clientY);
+const mx = coords.x;
+const my = coords.y;
+
+if(resizing && activeLayer && activeLayer.type === 'image') {
+    // Handle resizing
+    const newWidth = Math.max(10, mx - activeLayer.x);
+    const newHeight = Math.max(10, my - activeLayer.y);
+    
+    if(aspectRatioLocked) {
+        if(resizeHandleType === 'br' || resizeHandleType === 'tl') {
+            const ratio = originalAspectRatio;
+            if(newWidth / newHeight > ratio) {
+                activeLayer.w = newWidth;
+                activeLayer.h = newWidth / ratio;
+            } else {
+                activeLayer.w = newHeight * ratio;
+                activeLayer.h = newHeight;
+            }
+        } else {
+            // For other handles, maintain aspect ratio
+            const ratio = originalAspectRatio;
+            if(resizeHandleType === 'tr') {
+                activeLayer.w = newWidth;
+                activeLayer.h = newWidth / ratio;
+                activeLayer.y = activeLayer.y + activeLayer.h - newHeight;
+            } else if(resizeHandleType === 'bl') {
+                activeLayer.h = newHeight;
+                activeLayer.w = newHeight * ratio;
+                activeLayer.x = activeLayer.x + activeLayer.w - newWidth;
+            }
+        }
+    } else {
+        if(resizeHandleType === 'br') {
+            activeLayer.w = newWidth;
+            activeLayer.h = newHeight;
+        } else if(resizeHandleType === 'tl') {
+            activeLayer.w = activeLayer.x + activeLayer.w - mx;
+            activeLayer.h = activeLayer.y + activeLayer.h - my;
+            activeLayer.x = mx;
+            activeLayer.y = my;
+        } else if(resizeHandleType === 'tr') {
+            activeLayer.w = newWidth;
+            activeLayer.h = activeLayer.y + activeLayer.h - my;
+            activeLayer.y = my;
+        } else if(resizeHandleType === 'bl') {
+            activeLayer.w = activeLayer.x + activeLayer.w - mx;
+            activeLayer.h = newHeight;
+            activeLayer.x = mx;
+        }
+    }
+    
+    // Update controls
+    imageX.value = Math.round(activeLayer.x);
+    imageY.value = Math.round(activeLayer.y);
+    imageWidth.value = Math.round(activeLayer.w);
+    imageHeight.value = Math.round(activeLayer.h);
+    mobileImageX.value = Math.round(activeLayer.x);
+    mobileImageY.value = Math.round(activeLayer.y);
+    mobileImageWidth.value = Math.round(activeLayer.w);
+    mobileImageHeight.value = Math.round(activeLayer.h);
+} else if(dragging && activeLayer) {
+    // Handle dragging
+    activeLayer.x = mx-dx;
+    activeLayer.y = my-dy;
+    
+    // Update controls
+    imageX.value = Math.round(activeLayer.x);
+    imageY.value = Math.round(activeLayer.y);
+    mobileImageX.value = Math.round(activeLayer.x);
+    mobileImageY.value = Math.round(activeLayer.y);
+}
+
+redrawEditor();
+scheduleUpdate();
+});
+
+window.addEventListener('mouseup', ()=>{
+dragging=false;
+resizing=false;
+resizeHandleType=null;
+});
+
+// capture base texture from model
+let baseShirtTexture = null;
+document.querySelector('#tshirt').addEventListener('model-loaded', ev=>{
+const model = ev.detail.model;
+model.traverse(node=>{
+if(node.isMesh && node.material && node.material.map && !baseShirtTexture){
+baseShirtTexture = node.material.map;
+console.log('Captured base shirt texture from model (will be used as background).');
+}
+});
+// Apply initial t-shirt color after model loads
+const initialColor = shirtColorInput.value;
+shirtBaseColor = initialColor;
+// Initial update after model loads
+scheduleUpdate();
+});
+// Touch support for 3D rotation
+let touchRotating = false;
+let touchRotId = null;
+let prevTouchX = 0, prevTouchY = 0;
+document.addEventListener('touchstart', e => {
+if (e.target !== editorCanvas && !controlsPanel.contains(e.target)) {
+if (e.touches.length === 1) {
+const touch = e.touches[0];
+touchRotating = true;
+touchRotId = touch.identifier;
+prevTouchX = touch.clientX;
+prevTouchY = touch.clientY;
+}
+}
+});
+document.addEventListener('touchmove', e => {
+if (touchRotating && e.touches.length === 1 && e.touches[0].identifier === touchRotId) {
+const touch = e.touches[0];
+const dx = touch.clientX - prevTouchX;
+const dy = touch.clientY - prevTouchY;
+// Rotate only the tshirt model
+tshirt.object3D.rotation.y += dx * 0.01;
+tshirt.object3D.rotation.x = Math.max(-0.8, Math.min(0.8, tshirt.object3D.rotation.x + dy * 0.01));
+prevTouchX = touch.clientX;
+prevTouchY = touch.clientY;
+}
+});
+document.addEventListener('touchend', e => {
+if (touchRotating) {
+touchRotating = false;
+touchRotId = null;
+}
+});
+// Mouse rotation (for desktop)
+let isRot=false, prevX=0, prevY=0;
+document.body.addEventListener("mousedown", e=>{
+if(e.target !== editorCanvas && !controlsPanel.contains(e.target)){
+isRot=true;
+prevX=e.clientX;
+prevY=e.clientY;
+}
+});
+document.body.addEventListener("mouseup", ()=>{ isRot=false; });
+document.body.addEventListener("mousemove", e=>{
+if(!isRot) return;
+const dx=e.clientX-prevX, dy=e.clientY-prevY;
+// Rotate only the tshirt model
+tshirt.object3D.rotation.y += dx * 0.01;
+tshirt.object3D.rotation.x = Math.max(-0.8, Math.min(0.8, tshirt.object3D.rotation.x + dy * 0.01));
+prevX=e.clientX;
+prevY=e.clientY;
+});
+// Zoom with mouse wheel and touch pinch
+document.body.addEventListener("wheel", e=>{
+const cam=camera.object3D.position;
+cam.z += e.deltaY * 0.01;
+cam.z = Math.max(4, Math.min(10, cam.z));
+});
+// Pinch to zoom
+let initialPinchDistance = 0;
+document.addEventListener('touchstart', e => {
+if (e.touches.length === 2) {
+const dx = e.touches[0].clientX - e.touches[1].clientX;
+const dy = e.touches[0].clientY - e.touches[1].clientY;
+initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
+}
+});
+document.addEventListener('touchmove', e => {
+if (e.touches.length === 2) {
+const dx = e.touches[0].clientX - e.touches[1].clientX;
+const dy = e.touches[0].clientY - e.touches[1].clientY;
+const currentDistance = Math.sqrt(dx * dx + dy * dy);
+const scale = currentDistance / initialPinchDistance;
+const cam = camera.object3D.position;
+// Adjust zoom based on pinch
+if (scale > 1) {
+cam.z -= 0.05;
+} else {
+cam.z += 0.05;
+}
+cam.z = Math.max(4, Math.min(10, cam.z));
+initialPinchDistance = currentDistance;
+}
+});
+
+// Export functionality
+// Function to show export progress
+function showExportProgress() {
+exportProgress.style.display = 'flex';
+progressFill.style.width = '0%';
+progressText.textContent = 'Preparing export...';
+}
+
+// Function to update export progress
+function updateExportProgress(percent, message) {
+progressFill.style.width = `${percent}%`;
+progressText.textContent = message;
+}
+
+// Function to hide export progress
+function hideExportProgress() {
+setTimeout(() => {
+exportProgress.style.display = 'none';
+}, 1000);
+}
+
+// Function to capture scene as image - FIXED
+function captureSceneAsImage(orientation) {
+    return new Promise((resolve) => {
+        const sceneCanvas = document.querySelector('a-scene').canvas;
+        const tempCanvas = document.createElement('canvas');
+        const ctx = tempCanvas.getContext('2d');
+        
+        // Set dimensions based on orientation
+        let width, height;
+        if (orientation === 'portrait') {
+            width = 1080;
+            height = 1920;
+        } else {
+            width = 1920;
+            height = 1080;
+        }
+        
+        tempCanvas.width = width;
+        tempCanvas.height = height;
+        
+        // Force a render of the scene before capturing
+        requestAnimationFrame(() => {
+            // Draw the scene canvas onto the temp canvas, scaling to fit
+            ctx.drawImage(sceneCanvas, 0, 0, width, height);
+            
+            // Convert to blob
+            tempCanvas.toBlob((blob) => {
+                resolve(blob);
+            }, 'image/png');
+        });
+    });
+}
+
+// Function to export as PNG
+async function exportAsPNG(orientation) {
+showExportProgress();
+updateExportProgress(30, 'Capturing scene...');
+    
+try {
+    const blob = await captureSceneAsImage(orientation);
+    updateExportProgress(80, 'Preparing download...');
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vweave-${orientation}-${Date.now()}.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    updateExportProgress(100, 'Export complete!');
+} catch (error) {
+    console.error('Error exporting PNG:', error);
+    updateExportProgress(100, 'Export failed. Please try again.');
+} finally {
+    hideExportProgress();
+}
+}
+
+// Function to record video
+async function recordVideo(orientation) {
+showExportProgress();
+updateExportProgress(10, 'Preparing recording...');
+    
+const sceneCanvas = document.querySelector('a-scene').canvas;
+const stream = sceneCanvas.captureStream(30);
+    
+// Set up media recorder
+let options = { mimeType: 'video/webm;codecs=vp9' };
+if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+    options = { mimeType: 'video/webm' };
+}
+if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+    options = { mimeType: 'video/mp4' };
+}
+    
+const mediaRecorder = new MediaRecorder(stream, options);
+const recordedChunks = [];
+    
+mediaRecorder.ondataavailable = (event) => {
+    if (event.data.size > 0) {
+        recordedChunks.push(event.data);
+    }
+};
+    
+mediaRecorder.onstop = () => {
+    updateExportProgress(80, 'Processing video...');
+    
+    const blob = new Blob(recordedChunks, {
+        type: options.mimeType
+    });
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vweave-${orientation}-${Date.now()}.${options.mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    updateExportProgress(100, 'Export complete!');
+    hideExportProgress();
+    recordingIndicator.style.display = 'none';
+};
+    
+// Start recording
+updateExportProgress(30, 'Starting recording...');
+mediaRecorder.start();
+recordingIndicator.style.display = 'block';
+    
+// Update progress during recording
+let recordingTime = 0;
+const recordingInterval = setInterval(() => {
+    recordingTime += 1;
+    updateExportProgress(30 + (recordingTime * 10), `Recording... ${recordingTime}s`);
+    
+    if (recordingTime >= 5) {
+        clearInterval(recordingInterval);
+        mediaRecorder.stop();
+    }
+}, 1000);
+    
+// Rotate the shirt slowly during recording
+const originalRotation = tshirt.object3D.rotation.y;
+const rotationInterval = setInterval(() => {
+    tshirt.object3D.rotation.y += 0.02;
+}, 50);
+    
+// Clean up after recording
+mediaRecorder.addEventListener('stop', () => {
+    clearInterval(rotationInterval);
+    tshirt.object3D.rotation.y = originalRotation;
+});
+}
+
+// Add event listeners for export buttons
+exportPNGPortrait.addEventListener('click', () => exportAsPNG('portrait'));
+exportPNGLandscape.addEventListener('click', () => exportAsPNG('landscape'));
+exportMP4Portrait.addEventListener('click', () => recordVideo('portrait'));
+exportMP4Landscape.addEventListener('click', () => recordVideo('landscape'));
+
+// initial draw
+// seed with one example layer so you can test quickly (optional)
+//layers.push({type:'text', text:'TEST', fontSize:48, font:'Arial', color:'#000', x:150, y:150, w:220, h:60, rotation:0, opacity:1, visible:true});
+redrawEditor();
+</script>
+</body>
+</html>
