@@ -336,6 +336,22 @@ padding: 0;
 #recordingIndicator i {
     margin-right: 5px;
 }
+/* Preview indicator */
+#previewIndicator {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 123, 255, 0.8);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    display: none;
+    z-index: 1000;
+    animation: pulse 1s infinite;
+}
+#previewIndicator i {
+    margin-right: 5px;
+}
 /* Export progress modal */
 #exportProgress {
     position: fixed;
@@ -471,6 +487,60 @@ padding: 0;
 .format-selection input[type="radio"] {
     margin-right: 8px;
 }
+/* Animation settings */
+.animation-settings {
+    margin-top: 15px;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 5px;
+}
+.animation-settings label {
+    font-size: 13px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+.animation-settings input[type="range"] {
+    margin-top: 0;
+}
+/* Animation type selection */
+.animation-type-selection {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 5px;
+}
+.animation-type-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+}
+.animation-type-option {
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    padding: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.animation-type-option:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(0, 0, 0, 0.05);
+}
+.animation-type-option.selected {
+    border-color: var(--primary-color);
+    background-color: rgba(0, 0, 0, 0.1);
+}
+.animation-type-option i {
+    font-size: 18px;
+    margin-bottom: 4px;
+    display: block;
+}
+.animation-type-option span {
+    font-size: 11px;
+    display: block;
+}
 /* Mobile responsiveness */
 @media (max-width: 768px) {
 :root { --panel-w: 280px; }
@@ -501,6 +571,9 @@ display: block;
 }
 .model-grid {
     grid-template-columns: repeat(3, 1fr);
+}
+.animation-type-grid {
+    grid-template-columns: repeat(2, 1fr);
 }
 }
 /* For very small screens */
@@ -546,6 +619,9 @@ font-size: 9px;
 .model-grid {
     grid-template-columns: repeat(2, 1fr);
 }
+.animation-type-grid {
+    grid-template-columns: repeat(2, 1fr);
+}
 }
 </style>
 </head>
@@ -572,6 +648,10 @@ font-size: 9px;
 <!-- Recording indicator -->
 <div id="recordingIndicator">
     <i class="fas fa-circle"></i> Recording...
+</div>
+<!-- Preview indicator -->
+<div id="previewIndicator">
+    <i class="fas fa-play"></i> Previewing Animation...
 </div>
 <!-- Export progress modal -->
 <div id="exportProgress">
@@ -726,6 +806,50 @@ Live Update <span class="status-indicator"></span>
 <i class="fas fa-landscape"></i> MP4 Landscape
 </button>
 </div>
+<div class="animation-settings">
+    <h4>Animation Settings</h4>
+    <div class="animation-type-selection">
+        <label>Animation Type</label>
+        <div class="animation-type-grid">
+            <div class="animation-type-option selected" data-animation="rotation">
+                <i class="fas fa-sync-alt"></i>
+                <span>Rotation</span>
+            </div>
+            <div class="animation-type-option" data-animation="pulse">
+                <i class="fas fa-expand-arrows-alt"></i>
+                <span>Pulse</span>
+            </div>
+            <div class="animation-type-option" data-animation="bounce">
+                <i class="fas fa-arrow-up"></i>
+                <span>Bounce</span>
+            </div>
+            <div class="animation-type-option" data-animation="leftEnter">
+                <i class="fas fa-arrow-right"></i>
+                <span>Left Enter</span>
+            </div>
+            <div class="animation-type-option" data-animation="cameraOrbit">
+                <i class="fas fa-video"></i>
+                <span>Camera Orbit</span>
+            </div>
+        </div>
+    </div>
+    <label>Animation Duration (seconds)
+        <input type="range" id="animationDuration" min="3" max="10" step="0.5" value="5">
+        <span id="animationDurationValue">5s</span>
+    </label>
+    <label>Animation Speed
+        <input type="range" id="animationSpeed" min="0.5" max="3" step="0.1" value="1">
+        <span id="animationSpeedValue">1x</span>
+    </label>
+    <div style="margin-top:10px;">
+        <button id="previewAnimationPortrait" class="export-button">
+            <i class="fas fa-play"></i> Preview Portrait
+        </button>
+        <button id="previewAnimationLandscape" class="export-button">
+            <i class="fas fa-play"></i> Preview Landscape
+        </button>
+    </div>
+</div>
 <div class="format-selection">
     <label>
         <input type="radio" name="videoFormat" value="mp4" checked>
@@ -736,7 +860,7 @@ Live Update <span class="status-indicator"></span>
         WebM (VP9) - Fallback
     </label>
 </div>
-<div class="hint">Video exports are 5 seconds long with automatic rotation.</div>
+<div class="hint">Video exports include your selected animation based on your settings.</div>
 </div>
 <hr style="margin:12px 0">
 <div class="small">
@@ -973,6 +1097,48 @@ No active layer
 <i class="fas fa-landscape"></i> MP4 Landscape
 </button>
 </div>
+<h4 style="margin-top: 15px;">Animation Preview</h4>
+<div class="export-buttons">
+<button id="mobilePreviewAnimationPortrait" class="export-button">
+<i class="fas fa-play"></i> Preview Portrait
+</button>
+<button id="mobilePreviewAnimationLandscape" class="export-button">
+<i class="fas fa-play"></i> Preview Landscape
+</button>
+</div>
+<div class="animation-settings">
+    <h4>Animation Type</h4>
+    <div class="animation-type-grid">
+        <div class="mobile-animation-type-option selected" data-animation="rotation">
+            <i class="fas fa-sync-alt"></i>
+            <span>Rotation</span>
+        </div>
+        <div class="mobile-animation-type-option" data-animation="pulse">
+            <i class="fas fa-expand-arrows-alt"></i>
+            <span>Pulse</span>
+        </div>
+        <div class="mobile-animation-type-option" data-animation="bounce">
+            <i class="fas fa-arrow-up"></i>
+            <span>Bounce</span>
+        </div>
+        <div class="mobile-animation-type-option" data-animation="leftEnter">
+            <i class="fas fa-arrow-right"></i>
+            <span>Left Enter</span>
+        </div>
+        <div class="mobile-animation-type-option" data-animation="cameraOrbit">
+            <i class="fas fa-video"></i>
+            <span>Camera Orbit</span>
+        </div>
+    </div>
+    <label>Animation Duration (seconds)
+        <input type="range" id="mobileAnimationDuration" min="3" max="10" step="0.5" value="5">
+        <span id="mobileAnimationDurationValue">5s</span>
+    </label>
+    <label>Animation Speed
+        <input type="range" id="mobileAnimationSpeed" min="0.5" max="3" step="0.1" value="1">
+        <span id="mobileAnimationSpeedValue">1x</span>
+    </label>
+</div>
 <div class="format-selection">
     <label>
         <input type="radio" name="mobileVideoFormat" value="mp4" checked>
@@ -1040,9 +1206,19 @@ const exportPNGLandscape = document.getElementById('exportPNGLandscape');
 const exportMP4Portrait = document.getElementById('exportMP4Portrait');
 const exportMP4Landscape = document.getElementById('exportMP4Landscape');
 const recordingIndicator = document.getElementById('recordingIndicator');
+const previewIndicator = document.getElementById('previewIndicator');
 const exportProgress = document.getElementById('exportProgress');
 const progressFill = document.getElementById('progressFill');
 const progressText = document.getElementById('progressText');
+// Animation settings
+const animationDuration = document.getElementById('animationDuration');
+const animationDurationValue = document.getElementById('animationDurationValue');
+const animationSpeed = document.getElementById('animationSpeed');
+const animationSpeedValue = document.getElementById('animationSpeedValue');
+const previewAnimationPortrait = document.getElementById('previewAnimationPortrait');
+const previewAnimationLandscape = document.getElementById('previewAnimationLandscape');
+// Animation type selection
+const animationTypeOptions = document.querySelectorAll('.animation-type-option');
 // Format selection
 const formatRadios = document.querySelectorAll('input[name="videoFormat"]');
 const mobileFormatRadios = document.querySelectorAll('input[name="mobileVideoFormat"]');
@@ -1099,6 +1275,15 @@ const mobileExportPNGPortrait = document.getElementById('mobileExportPNGPortrait
 const mobileExportPNGLandscape = document.getElementById('mobileExportPNGLandscape');
 const mobileExportMP4Portrait = document.getElementById('mobileExportMP4Portrait');
 const mobileExportMP4Landscape = document.getElementById('mobileExportMP4Landscape');
+// Mobile animation elements
+const mobileAnimationDuration = document.getElementById('mobileAnimationDuration');
+const mobileAnimationDurationValue = document.getElementById('mobileAnimationDurationValue');
+const mobileAnimationSpeed = document.getElementById('mobileAnimationSpeed');
+const mobileAnimationSpeedValue = document.getElementById('mobileAnimationSpeedValue');
+const mobilePreviewAnimationPortrait = document.getElementById('mobilePreviewAnimationPortrait');
+const mobilePreviewAnimationLandscape = document.getElementById('mobilePreviewAnimationLandscape');
+const mobileAnimationTypeOptions = document.querySelectorAll('.mobile-animation-type-option');
+
 // Device Motion Permission Handling
 function requestDeviceMotionPermission() {
     // Check if DeviceMotionEvent is supported
@@ -1250,6 +1435,27 @@ shirtColorInput.value = e.target.value;
 mobileShirtColorValue.textContent = e.target.value;
 shirtColorInput.dispatchEvent(new Event('input'));
 });
+// Sync animation controls
+mobileAnimationDuration.addEventListener('input', e => {
+animationDuration.value = e.target.value;
+animationDurationValue.textContent = e.target.value + 's';
+mobileAnimationDurationValue.textContent = e.target.value + 's';
+});
+mobileAnimationSpeed.addEventListener('input', e => {
+animationSpeed.value = e.target.value;
+animationSpeedValue.textContent = e.target.value + 'x';
+mobileAnimationSpeedValue.textContent = e.target.value + 'x';
+});
+animationDuration.addEventListener('input', e => {
+mobileAnimationDuration.value = e.target.value;
+animationDurationValue.textContent = e.target.value + 's';
+mobileAnimationDurationValue.textContent = e.target.value + 's';
+});
+animationSpeed.addEventListener('input', e => {
+mobileAnimationSpeed.value = e.target.value;
+animationSpeedValue.textContent = e.target.value + 'x';
+mobileAnimationSpeedValue.textContent = e.target.value + 'x';
+});
 // Mobile button actions
 mobileAddTextBtn.addEventListener('click', () => {
 addTextBtn.click();
@@ -1280,6 +1486,15 @@ mobileExportMP4Landscape.addEventListener('click', () => {
 mobileExportPanel.classList.remove('active');
 recordVideo('landscape');
 });
+// Mobile preview button actions
+mobilePreviewAnimationPortrait.addEventListener('click', () => {
+mobileExportPanel.classList.remove('active');
+previewAnimation('portrait');
+});
+mobilePreviewAnimationLandscape.addEventListener('click', () => {
+mobileExportPanel.classList.remove('active');
+previewAnimation('landscape');
+});
 // Update mobile layer info
 function updateMobileLayerInfo() {
 if (activeLayer) {
@@ -1299,6 +1514,8 @@ let isUpdating = false; // To prevent overlapping updates
 let aspectRatioLocked = false; // For aspect ratio lock
 let originalAspectRatio = 1; // Store original aspect ratio
 let currentModel = 'tshirt'; // Track current model
+let isAnimating = false; // Track if animation is in progress
+let selectedAnimationType = 'rotation'; // Default animation type
 function deg2rad(d){ return d * Math.PI / 180; }
 function drawBackground(){ ctx.clearRect(0,0,512,512); ctx.fillStyle='#fff'; ctx.fillRect(0,0,512,512); }
 function drawUV(){ if(uvToggle.checked && uvLoaded){ ctx.globalAlpha=0.45; ctx.drawImage(uvMap,0,0,512,512); ctx.globalAlpha=1; } }
@@ -1634,6 +1851,48 @@ mobileModelOptions.forEach(option => {
         
         // Close the panel
         mobileModelPanel.classList.remove('active');
+    });
+});
+// Animation type selection
+animationTypeOptions.forEach(option => {
+    option.addEventListener('click', () => {
+        // Remove selected class from all options
+        animationTypeOptions.forEach(opt => opt.classList.remove('selected'));
+        // Add selected class to clicked option
+        option.classList.add('selected');
+        
+        // Update selected animation type
+        selectedAnimationType = option.dataset.animation;
+        
+        // Also update mobile selection
+        mobileAnimationTypeOptions.forEach(mobileOpt => {
+            if (mobileOpt.dataset.animation === selectedAnimationType) {
+                mobileOpt.classList.add('selected');
+            } else {
+                mobileOpt.classList.remove('selected');
+            }
+        });
+    });
+});
+// Mobile animation type selection
+mobileAnimationTypeOptions.forEach(option => {
+    option.addEventListener('click', () => {
+        // Remove selected class from all options
+        mobileAnimationTypeOptions.forEach(opt => opt.classList.remove('selected'));
+        // Add selected class to clicked option
+        option.classList.add('selected');
+        
+        // Update selected animation type
+        selectedAnimationType = option.dataset.animation;
+        
+        // Also update desktop selection
+        animationTypeOptions.forEach(desktopOpt => {
+            if (desktopOpt.dataset.animation === selectedAnimationType) {
+                desktopOpt.classList.add('selected');
+            } else {
+                desktopOpt.classList.remove('selected');
+            }
+        });
     });
 });
 // Function to update the model texture with current design
@@ -2241,6 +2500,142 @@ cam.z = Math.max(4, Math.min(10, cam.z));
 initialPinchDistance = currentDistance;
 }
 });
+
+// Animation function
+function startAnimation(duration, speed, animationType, onProgress, onComplete) {
+    if (isAnimating) return;
+    isAnimating = true;
+    
+    const startTime = performance.now();
+    const adjustedDuration = duration * 1000; // Convert to milliseconds
+    
+    // Store initial positions and rotations
+    const initialModelPosition = { ...tshirt.object3D.position };
+    const initialModelRotation = { ...tshirt.object3D.rotation };
+    const initialCameraPosition = { ...camera.object3D.position };
+    const initialCameraRotation = { ...camera.object3D.rotation };
+    
+    function animate(currentTime) {
+        if (!isAnimating) return;
+        
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / adjustedDuration, 1);
+        
+        // Apply different animations based on selected type
+        switch(animationType) {
+            case 'rotation':
+                // Rotation animation
+                const rotationAmount = Math.PI * 2 * progress * speed;
+                tshirt.object3D.rotation.y = initialModelRotation.y + rotationAmount;
+                break;
+                
+            case 'pulse':
+                // Pulse animation (scale up and down)
+                const pulseScale = 0.4 + (Math.sin(progress * Math.PI * 2 * speed) * 0.1);
+                tshirt.object3D.scale.set(pulseScale, pulseScale, pulseScale);
+                break;
+                
+            case 'bounce':
+                // Bounce animation (vertical movement)
+                const bounceHeight = Math.abs(Math.sin(progress * Math.PI * speed)) * 0.5;
+                tshirt.object3D.position.y = initialModelPosition.y + bounceHeight;
+                break;
+                
+            case 'leftEnter':
+                // Left enter animation (move from left to center)
+                const leftEnterX = -2 + (2 * progress * speed);
+                tshirt.object3D.position.x = leftEnterX;
+                break;
+                
+            case 'cameraOrbit':
+                // Camera orbit animation
+                const orbitAngle = Math.PI * 2 * progress * speed;
+                const orbitRadius = 3;
+                camera.object3D.position.x = Math.sin(orbitAngle) * orbitRadius;
+                camera.object3D.position.z = Math.cos(orbitAngle) * orbitRadius;
+                camera.object3D.lookAt(0, 0, 0);
+                break;
+        }
+        
+        // Call progress callback if provided
+        if (onProgress) {
+            onProgress(progress);
+        }
+        
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        } else {
+            // Animation complete - reset to initial positions
+            resetPositions();
+            
+            if (onComplete) {
+                onComplete();
+            }
+            isAnimating = false;
+        }
+    }
+    
+    function resetPositions() {
+        // Reset model position and rotation
+        tshirt.object3D.position.copy(initialModelPosition);
+        tshirt.object3D.rotation.copy(initialModelRotation);
+        tshirt.object3D.scale.set(0.4, 0.4, 0.4);
+        
+        // Reset camera position and rotation
+        camera.object3D.position.copy(initialCameraPosition);
+        camera.object3D.rotation.copy(initialCameraRotation);
+    }
+    
+    requestAnimationFrame(animate);
+}
+
+// Preview animation function
+function previewAnimation(orientation) {
+    if (isAnimating) return;
+    
+    // Get animation settings
+    const duration = parseFloat(animationDuration.value);
+    const speed = parseFloat(animationSpeed.value);
+    
+    // Show preview indicator
+    previewIndicator.style.display = 'block';
+    
+    // Disable buttons during preview
+    setButtonsState(false);
+    
+    // Start animation
+    startAnimation(duration, speed, selectedAnimationType, null, () => {
+        // Animation complete
+        previewIndicator.style.display = 'none';
+        setButtonsState(true);
+    });
+}
+
+// Set buttons state (enabled/disabled)
+function setButtonsState(enabled) {
+    const buttons = [
+        previewAnimationPortrait, 
+        previewAnimationLandscape,
+        exportPNGPortrait, 
+        exportPNGLandscape,
+        exportMP4Portrait, 
+        exportMP4Landscape,
+        mobilePreviewAnimationPortrait,
+        mobilePreviewAnimationLandscape,
+        mobileExportPNGPortrait,
+        mobileExportPNGLandscape,
+        mobileExportMP4Portrait,
+        mobileExportMP4Landscape
+    ];
+    
+    buttons.forEach(button => {
+        if (button) {
+            button.disabled = !enabled;
+            button.style.opacity = enabled ? '1' : '0.5';
+        }
+    });
+}
+
 // Export functionality
 // Function to show export progress
 function showExportProgress() {
@@ -2376,42 +2771,32 @@ async function recordVideo(orientation) {
         
         // Set file extension based on actual format used
         const extension = selectedFormat === 'mp4' ? 'mp4' : 'webm';
-        a.download = `vweave-${currentModel}-${orientation}-${Date.now()}.${extension}`;
+        a.download = `vweave-${currentModel}-${selectedAnimationType}-${orientation}-${Date.now()}.${extension}`;
         a.click();
         URL.revokeObjectURL(url);
         
         updateExportProgress(100, 'Export complete!');
         hideExportProgress();
         recordingIndicator.style.display = 'none';
+        setButtonsState(true); // Re-enable buttons
     };
+    
+    // Get animation settings
+    const duration = parseFloat(animationDuration.value);
+    const speed = parseFloat(animationSpeed.value);
     
     // Start recording
     updateExportProgress(30, 'Starting recording...');
     mediaRecorder.start();
     recordingIndicator.style.display = 'block';
+    setButtonsState(false); // Disable buttons during recording
     
-    // Update progress during recording
-    let recordingTime = 0;
-    const recordingInterval = setInterval(() => {
-        recordingTime += 1;
-        updateExportProgress(30 + (recordingTime * 10), `Recording... ${recordingTime}s`);
-        
-        if (recordingTime >= 5) {
-            clearInterval(recordingInterval);
-            mediaRecorder.stop();
-        }
-    }, 1000);
-    
-    // Rotate the model slowly during recording
-    const originalRotation = tshirt.object3D.rotation.y;
-    const rotationInterval = setInterval(() => {
-        tshirt.object3D.rotation.y += 0.02;
-    }, 50);
-    
-    // Clean up after recording
-    mediaRecorder.addEventListener('stop', () => {
-        clearInterval(rotationInterval);
-        tshirt.object3D.rotation.y = originalRotation;
+    // Start animation
+    startAnimation(duration, speed, selectedAnimationType, (progress) => {
+        updateExportProgress(30 + (progress * 50), `Recording... ${Math.round(progress * 100)}%`);
+    }, () => {
+        // Animation complete, stop recording
+        mediaRecorder.stop();
     });
 }
 // Add event listeners for export buttons
@@ -2419,6 +2804,18 @@ exportPNGPortrait.addEventListener('click', () => exportAsPNG('portrait'));
 exportPNGLandscape.addEventListener('click', () => exportAsPNG('landscape'));
 exportMP4Portrait.addEventListener('click', () => recordVideo('portrait'));
 exportMP4Landscape.addEventListener('click', () => recordVideo('landscape'));
+// Add event listeners for preview buttons
+previewAnimationPortrait.addEventListener('click', () => previewAnimation('portrait'));
+previewAnimationLandscape.addEventListener('click', () => previewAnimation('landscape'));
+// Add event listeners for mobile preview buttons
+mobilePreviewAnimationPortrait.addEventListener('click', () => {
+    mobileExportPanel.classList.remove('active');
+    previewAnimation('portrait');
+});
+mobilePreviewAnimationLandscape.addEventListener('click', () => {
+    mobileExportPanel.classList.remove('active');
+    previewAnimation('landscape');
+});
 // initial draw
 // seed with one example layer so you can test quickly (optional)
 //layers.push({type:'text', text:'TEST', fontSize:48, font:'Arial', color:'#000', x:150, y:150, w:220, h:60, rotation:0, opacity:1, visible:true});
