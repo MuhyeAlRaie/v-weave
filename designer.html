@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>V-Weave - 3D T-Shirt Designer</title>
+<title>V-Weave - 3D Designer</title>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
@@ -62,14 +62,13 @@ display: flex;
 flex: 1;
 overflow: hidden;
 }
-/* Controls panel */
+/* Controls panel - now always visible on desktop */
 #controls {
 background: rgba(255, 255, 255, 0.95);
 width: var(--panel-w);
 padding: 14px;
 overflow-y: auto;
 box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-transition: transform 0.3s ease;
 }
 /* Editor area - now positioned at bottom right */
 #editorWrap {
@@ -140,7 +139,7 @@ button:hover {
 background: #333;
 }
 /* Inputs */
-input[type="file"], input[type="text"], input[type="number"], input[type="range"] {
+input[type="file"], input[type="text"], input[type="number"], input[type="range"], select {
 width: 100%;
 padding: 8px;
 margin-top: 4px;
@@ -150,6 +149,58 @@ box-sizing: border-box;
 }
 input[type="checkbox"] {
 margin-right: 8px;
+}
+/* Model selection */
+.model-selection {
+    margin-bottom: 15px;
+}
+.model-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+.model-option {
+    position: relative;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.model-option:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(0, 0, 0, 0.05);
+}
+.model-option.selected {
+    border-color: var(--primary-color);
+    background-color: rgba(0, 0, 0, 0.1);
+}
+.model-option i {
+    font-size: 24px;
+    margin-bottom: 5px;
+    display: block;
+}
+.model-option span {
+    font-size: 12px;
+    display: block;
+}
+/* Loading indicator */
+.model-loading {
+    display: none;
+    text-align: center;
+    padding: 10px;
+    color: #666;
+    font-size: 14px;
+}
+.model-loading i {
+    animation: spin 1s linear infinite;
+    margin-right: 5px;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 /* Mobile bottom bar */
 .mobile-controls {
@@ -448,6 +499,9 @@ right: 10px;
 .mobile-controls {
 display: block;
 }
+.model-grid {
+    grid-template-columns: repeat(3, 1fr);
+}
 }
 /* For very small screens */
 @media (max-width: 480px) {
@@ -489,6 +543,9 @@ font-size: 9px;
 .permission-buttons {
     flex-direction: column;
 }
+.model-grid {
+    grid-template-columns: repeat(2, 1fr);
+}
 }
 </style>
 </head>
@@ -496,11 +553,17 @@ font-size: 9px;
 <!-- Full-screen 3D scene as background -->
 <a-scene embedded background="color: #e9e9e9" renderer="preserveDrawingBuffer: true">
 <a-assets>
-<a-asset-item id="shirtModel" src="t-shirt.glb"></a-asset-item>
-<img id="uvAsset" src="uvmap.png" crossorigin="anonymous" style="display:none;">
+<a-asset-item id="tshirtModel" src="models/t-shirt.glb"></a-asset-item>
+<a-asset-item id="hoodieModel" src="models/hoodie.glb"></a-asset-item>
+<!-- <a-asset-item id="capModel" src="models/cap.glb"></a-asset-item>
+<a-asset-item id="longsleeveModel" src="models/long-sleeve.glb"></a-asset-item> -->
+<img id="tshirtUv" src="models/t-shirt_uvmap.png" crossorigin="anonymous">
+<img id="hoodieUv" src="models/hoodie_uvmap.png" crossorigin="anonymous">
+<!-- <img id="capUv" src="models/cap_uvmap.png" crossorigin="anonymous">
+<img id="longsleeveUv" src="models/long-sleeve_uvmap.png" crossorigin="anonymous"> -->
 </a-assets>
 <a-entity id="shirtWrapper" position="0 -20 0">
-<a-entity id="tshirt" gltf-model="#shirtModel" scale="0.4 0.4 0.4"></a-entity>
+<a-entity id="tshirt" gltf-model="#tshirtModel" scale="0.4 0.4 0.4"></a-entity>
 </a-entity>
 <a-entity id="camera" camera position="0 0 3" look-controls="enabled: false"></a-entity>
 <a-entity light="type: directional; intensity:1" position="1 2 2"></a-entity>
@@ -534,7 +597,7 @@ font-size: 9px;
 <!-- App overlay -->
 <div class="app-container">
 <div class="app-header">
-<div class="app-title">3D T-Shirt Designer</div>
+<div class="app-title">3D Designer</div>
 <div class="header-buttons">
 <button class="menu-toggle" id="menuToggle">Menu</button>
 <button class="editor-toggle" id="editorToggle">Editor</button>
@@ -542,6 +605,30 @@ font-size: 9px;
 </div>
 <div class="app-content">
 <div id="controls">
+<h3>Model Selection</h3>
+<div class="model-selection">
+    <div class="model-grid">
+        <div class="model-option selected" data-model="tshirt" data-uv="tshirtUv">
+            <i class="fas fa-tshirt"></i>
+            <span>T-Shirt</span>
+        </div>
+        <div class="model-option" data-model="hoodie" data-uv="hoodieUv">
+            <i class="fas fa-tshirt"></i>
+            <span>Hoodie</span>
+        </div>
+        <div class="model-option" data-model="cap" data-uv="capUv">
+            <i class="fas fa-hat-cowboy"></i>
+            <span>Cap</span>
+        </div>
+        <div class="model-option" data-model="longsleeve" data-uv="longsleeveUv">
+            <i class="fas fa-tshirt"></i>
+            <span>Long Sleeve</span>
+        </div>
+    </div>
+    <div id="modelLoading" class="model-loading">
+        <i class="fas fa-spinner"></i> Loading model...
+    </div>
+</div>
 <h3>Tools</h3>
 <label>Upload Image
 <input type="file" id="upload" accept="image/*">
@@ -612,7 +699,7 @@ font-size: 9px;
 <span id="bgColorValue">#e9e9e9</span>
 </div>
 </label>
-<label>T-Shirt Base Color
+<label>Model Base Color
 <div class="color-row">
 <input type="color" id="shirtColor" value="#ffffff">
 <span id="shirtColorValue">#ffffff</span>
@@ -653,12 +740,13 @@ Live Update <span class="status-indicator"></span>
 </div>
 <hr style="margin:12px 0">
 <div class="small">
-<strong>Notes:</strong>
+<strong>Production Setup:</strong>
 <ul>
-<li>Put <code>t-shirt.glb</code> and <code>uvmap.png</code> next to this file (or change paths in code).</li>
-<li>Changes are applied to the T-shirt in real-time.</li>
-<li>T-Shirt base color changes won't affect your design layers.</li>
-<li>Original shirt texture is preserved as background.</li>
+<li>Place your model files in the <code>models/</code> folder</li>
+<li>Required files: t-shirt.glb, hoodie.glb, cap.glb, long-sleeve.glb</li>
+<li>Required UV maps: t-shirt_uvmap.png, hoodie_uvmap.png, cap_uvmap.png, long-sleeve_uvmap.png</li>
+<li>All UV maps should be 512x512 PNG files</li>
+<li>Models should be in GLTF/GLB format</li>
 </ul>
 </div>
 </div>
@@ -672,6 +760,10 @@ Live Update <span class="status-indicator"></span>
 <!-- Mobile controls bar -->
 <div class="mobile-controls">
 <div class="mobile-controls-bar">
+<div class="mobile-control-item" id="mobileModelBtn">
+<i class="fas fa-cube"></i>
+<span>Models</span>
+</div>
 <div class="mobile-control-item" id="mobileToolsBtn">
 <i class="fas fa-tools"></i>
 <span>Tools</span>
@@ -688,10 +780,6 @@ Live Update <span class="status-indicator"></span>
 <i class="fas fa-palette"></i>
 <span>Colors</span>
 </div>
-<div class="mobile-control-item" id="mobileSettingsBtn">
-<i class="fas fa-cog"></i>
-<span>Settings</span>
-</div>
 <div class="mobile-control-item" id="mobileExportBtn">
 <i class="fas fa-download"></i>
 <span>Export</span>
@@ -699,6 +787,39 @@ Live Update <span class="status-indicator"></span>
 </div>
 </div>
 <!-- Mobile panel overlays -->
+<div class="mobile-panel" id="mobileModelPanel">
+<div class="mobile-panel-content">
+<div class="mobile-panel-header">
+<div class="mobile-panel-title">Select Model</div>
+<button class="mobile-panel-close" id="closeModelPanel">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div>
+<div class="model-grid">
+    <div class="mobile-model-option selected" data-model="tshirt" data-uv="tshirtUv">
+        <i class="fas fa-tshirt"></i>
+        <span>T-Shirt</span>
+    </div>
+    <div class="mobile-model-option" data-model="hoodie" data-uv="hoodieUv">
+        <i class="fas fa-tshirt"></i>
+        <span>Hoodie</span>
+    </div>
+    <div class="mobile-model-option" data-model="cap" data-uv="capUv">
+        <i class="fas fa-hat-cowboy"></i>
+        <span>Cap</span>
+    </div>
+    <div class="mobile-model-option" data-model="longsleeve" data-uv="longsleeveUv">
+        <i class="fas fa-tshirt"></i>
+        <span>Long Sleeve</span>
+    </div>
+</div>
+<div id="mobileModelLoading" class="model-loading">
+    <i class="fas fa-spinner"></i> Loading model...
+</div>
+</div>
+</div>
+</div>
 <div class="mobile-panel" id="mobileToolsPanel">
 <div class="mobile-panel-content">
 <div class="mobile-panel-header">
@@ -816,34 +937,12 @@ No active layer
 <span id="mobileBgColorValue">#e9e9e9</span>
 </div>
 </label>
-<label>T-Shirt Base Color
+<label>Model Base Color
 <div class="color-row">
 <input type="color" id="mobileShirtColor" value="#ffffff">
 <span id="mobileShirtColorValue">#ffffff</span>
 </div>
 </label>
-</div>
-</div>
-</div>
-<div class="mobile-panel" id="mobileSettingsPanel">
-<div class="mobile-panel-content">
-<div class="mobile-panel-header">
-<div class="mobile-panel-title">Settings</div>
-<button class="mobile-panel-close" id="closeSettingsPanel">
-<i class="fas fa-times"></i>
-</button>
-</div>
-<div class="small">
-<strong>Notes:</strong>
-<ul>
-<li>Put <code>t-shirt.glb</code> and <code>uvmap.png</code> next to this file (or change paths in code).</li>
-<li>Changes are applied to the T-shirt in real-time.</li>
-<li>T-Shirt base color changes won't affect your design layers.</li>
-<li>Original shirt texture is preserved as background.</li>
-</ul>
-<div style="margin-top:15px; text-align:center; color:#666; font-size:12px;">
-Live Update <span class="status-indicator"></span>
-</div>
 </div>
 </div>
 </div>
@@ -921,6 +1020,8 @@ const menuToggle = document.getElementById('menuToggle');
 const editorToggle = document.getElementById('editorToggle');
 const controlsPanel = document.getElementById('controls');
 const editorWrap = document.getElementById('editorWrap');
+const modelLoading = document.getElementById('modelLoading');
+const mobileModelLoading = document.getElementById('mobileModelLoading');
 // Permission modal elements
 const permissionModal = document.getElementById('permissionModal');
 const allowPermission = document.getElementById('allowPermission');
@@ -945,24 +1046,26 @@ const progressText = document.getElementById('progressText');
 // Format selection
 const formatRadios = document.querySelectorAll('input[name="videoFormat"]');
 const mobileFormatRadios = document.querySelectorAll('input[name="mobileVideoFormat"]');
+// Model selection
+const modelOptions = document.querySelectorAll('.model-option');
 // Mobile controls
+const mobileModelBtn = document.getElementById('mobileModelBtn');
 const mobileToolsBtn = document.getElementById('mobileToolsBtn');
 const mobileTextBtn = document.getElementById('mobileTextBtn');
 const mobileImageBtn = document.getElementById('mobileImageBtn');
 const mobileColorBtn = document.getElementById('mobileColorBtn');
-const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
 const mobileExportBtn = document.getElementById('mobileExportBtn');
+const mobileModelPanel = document.getElementById('mobileModelPanel');
 const mobileToolsPanel = document.getElementById('mobileToolsPanel');
 const mobileTextPanel = document.getElementById('mobileTextPanel');
 const mobileImagePanel = document.getElementById('mobileImagePanel');
 const mobileColorPanel = document.getElementById('mobileColorPanel');
-const mobileSettingsPanel = document.getElementById('mobileSettingsPanel');
 const mobileExportPanel = document.getElementById('mobileExportPanel');
+const closeModelPanel = document.getElementById('closeModelPanel');
 const closeToolsPanel = document.getElementById('closeToolsPanel');
 const closeTextPanel = document.getElementById('closeTextPanel');
 const closeImagePanel = document.getElementById('closeImagePanel');
 const closeColorPanel = document.getElementById('closeColorPanel');
-const closeSettingsPanel = document.getElementById('closeSettingsPanel');
 const closeExportPanel = document.getElementById('closeExportPanel');
 // Mobile panel elements
 const mobileUpload = document.getElementById('mobileUpload');
@@ -1060,6 +1163,9 @@ controlsPanel.classList.remove('open');
 }
 });
 // Mobile panel controls
+mobileModelBtn.addEventListener('click', () => {
+mobileModelPanel.classList.add('active');
+});
 mobileToolsBtn.addEventListener('click', () => {
 mobileToolsPanel.classList.add('active');
 });
@@ -1072,13 +1178,13 @@ mobileImagePanel.classList.add('active');
 mobileColorBtn.addEventListener('click', () => {
 mobileColorPanel.classList.add('active');
 });
-mobileSettingsBtn.addEventListener('click', () => {
-mobileSettingsPanel.classList.add('active');
-});
 mobileExportBtn.addEventListener('click', () => {
 mobileExportPanel.classList.add('active');
 });
 // Close mobile panels
+closeModelPanel.addEventListener('click', () => {
+mobileModelPanel.classList.remove('active');
+});
 closeToolsPanel.addEventListener('click', () => {
 mobileToolsPanel.classList.remove('active');
 });
@@ -1090,9 +1196,6 @@ mobileImagePanel.classList.remove('active');
 });
 closeColorPanel.addEventListener('click', () => {
 mobileColorPanel.classList.remove('active');
-});
-closeSettingsPanel.addEventListener('click', () => {
-mobileSettingsPanel.classList.remove('active');
 });
 closeExportPanel.addEventListener('click', () => {
 mobileExportPanel.classList.remove('active');
@@ -1186,7 +1289,7 @@ mobileLayerInfo.textContent = 'No active layer';
 }
 }
 // simple editor + uv
-const uvMap = new Image(); uvMap.src = 'uvmap.png';
+const uvMap = new Image(); uvMap.src = 'models/t-shirt_uvmap.png';
 let uvLoaded = false; uvMap.onload = () => { uvLoaded = true; redrawEditor(); };
 const layers = []; // basic layer structure
 let activeLayer = null;
@@ -1195,6 +1298,7 @@ let updateTimeout = null; // For debouncing updates
 let isUpdating = false; // To prevent overlapping updates
 let aspectRatioLocked = false; // For aspect ratio lock
 let originalAspectRatio = 1; // Store original aspect ratio
+let currentModel = 'tshirt'; // Track current model
 function deg2rad(d){ return d * Math.PI / 180; }
 function drawBackground(){ ctx.clearRect(0,0,512,512); ctx.fillStyle='#fff'; ctx.fillRect(0,0,512,512); }
 function drawUV(){ if(uvToggle.checked && uvLoaded){ ctx.globalAlpha=0.45; ctx.drawImage(uvMap,0,0,512,512); ctx.globalAlpha=1; } }
@@ -1434,7 +1538,105 @@ mobileLockAspectRatio.addEventListener('click', () => {
     // Sync desktop button
     lockAspectRatio.click();
 });
-// Function to update the T-shirt texture with current design
+// Model selection functionality
+function switchModel(modelName, uvAssetId) {
+    // Show loading indicators
+    modelLoading.style.display = 'block';
+    mobileModelLoading.style.display = 'block';
+    
+    // Update current model
+    currentModel = modelName;
+    
+    // Get the model entity
+    const modelEntity = document.querySelector('#tshirt');
+    
+    // Remove the current model
+    modelEntity.removeAttribute('gltf-model');
+    
+    // Reset base texture
+    baseShirtTexture = null;
+    
+    // Set the new model
+    setTimeout(() => {
+        modelEntity.setAttribute('gltf-model', `#${modelName}Model`);
+        
+        // Update UV map
+        const uvAsset = document.getElementById(uvAssetId);
+        if (uvAsset) {
+            uvLoaded = false;
+            uvMap.src = uvAsset.src;
+            
+            // Check if image is already loaded
+            if (uvMap.complete) {
+                uvLoaded = true;
+                redrawEditor();
+                scheduleUpdate();
+                modelLoading.style.display = 'none';
+                mobileModelLoading.style.display = 'none';
+            } else {
+                uvMap.onload = () => {
+                    uvLoaded = true;
+                    redrawEditor();
+                    scheduleUpdate();
+                    modelLoading.style.display = 'none';
+                    mobileModelLoading.style.display = 'none';
+                };
+            }
+        }
+        
+        // Clear layers when changing models
+        layers.length = 0;
+        setActiveLayer(null);
+        
+        console.log(`Model changed to: ${modelName}`);
+    }, 100);
+}
+// Desktop model selection
+modelOptions.forEach(option => {
+    option.addEventListener('click', () => {
+        // Remove selected class from all options
+        modelOptions.forEach(opt => opt.classList.remove('selected'));
+        // Add selected class to clicked option
+        option.classList.add('selected');
+        
+        // Get model and UV map data
+        const modelName = option.dataset.model;
+        const uvAssetId = option.dataset.uv;
+        
+        // Switch to the selected model
+        switchModel(modelName, uvAssetId);
+    });
+});
+// Mobile model selection
+const mobileModelOptions = document.querySelectorAll('.mobile-model-option');
+mobileModelOptions.forEach(option => {
+    option.addEventListener('click', () => {
+        // Remove selected class from all options
+        mobileModelOptions.forEach(opt => opt.classList.remove('selected'));
+        // Add selected class to clicked option
+        option.classList.add('selected');
+        
+        // Also update desktop selection
+        modelOptions.forEach(opt => {
+            if (opt.dataset.model === option.dataset.model) {
+                opt.classList.add('selected');
+            } else {
+                opt.classList.remove('selected');
+            }
+        });
+        
+        // Get model and UV map data
+        const modelName = option.dataset.model;
+        const uvAssetId = option.dataset.uv;
+        
+        // Switch to the selected model
+        switchModel(modelName, uvAssetId);
+        
+        // Close the panel
+        mobileModelPanel.classList.remove('active');
+    });
+});
+// Function to update the model texture with current design
 function updateShirtTexture() {
 // Clear any pending update
 if (updateTimeout) {
@@ -1563,7 +1765,7 @@ console.error('Error during update:', err);
 isUpdating = false;
 }
 }
-// Schedule an update to the T-shirt texture
+// Schedule an update to the model texture
 function scheduleUpdate() {
 // Clear any existing timeout
 if (updateTimeout) {
@@ -1662,7 +1864,7 @@ const color = e.target.value;
 bgColorValue.textContent = color;
 scene.setAttribute('background', `color: ${color}`);
 });
-// T-shirt base color change
+// Model base color change
 shirtColorInput.addEventListener('input', e => {
 const color = e.target.value;
 shirtColorValue.textContent = color;
@@ -1946,10 +2148,10 @@ const model = ev.detail.model;
 model.traverse(node=>{
 if(node.isMesh && node.material && node.material.map && !baseShirtTexture){
 baseShirtTexture = node.material.map;
-console.log('Captured base shirt texture from model (will be used as background).');
+console.log('Captured base model texture from model (will be used as background).');
 }
 });
-// Apply initial t-shirt color after model loads
+// Apply initial model color after model loads
 const initialColor = shirtColorInput.value;
 shirtBaseColor = initialColor;
 // Initial update after model loads
@@ -1975,7 +2177,7 @@ if (touchRotating && e.touches.length === 1 && e.touches[0].identifier === touch
 const touch = e.touches[0];
 const dx = touch.clientX - prevTouchX;
 const dy = touch.clientY - prevTouchY;
-// Rotate only the tshirt model
+// Rotate only the model
 tshirt.object3D.rotation.y += dx * 0.01;
 tshirt.object3D.rotation.x = Math.max(-0.8, Math.min(0.8, tshirt.object3D.rotation.x + dy * 0.01));
 prevTouchX = touch.clientX;
@@ -2001,7 +2203,7 @@ document.body.addEventListener("mouseup", ()=>{ isRot=false; });
 document.body.addEventListener("mousemove", e=>{
 if(!isRot) return;
 const dx=e.clientX-prevX, dy=e.clientY-prevY;
-// Rotate only the tshirt model
+// Rotate only the model
 tshirt.object3D.rotation.y += dx * 0.01;
 tshirt.object3D.rotation.x = Math.max(-0.8, Math.min(0.8, tshirt.object3D.rotation.x + dy * 0.01));
 prevX=e.clientX;
@@ -2101,7 +2303,7 @@ try {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `vweave-${orientation}-${Date.now()}.png`;
+    a.download = `vweave-${currentModel}-${orientation}-${Date.now()}.png`;
     a.click();
     URL.revokeObjectURL(url);
     
@@ -2174,7 +2376,7 @@ async function recordVideo(orientation) {
         
         // Set file extension based on actual format used
         const extension = selectedFormat === 'mp4' ? 'mp4' : 'webm';
-        a.download = `vweave-${orientation}-${Date.now()}.${extension}`;
+        a.download = `vweave-${currentModel}-${orientation}-${Date.now()}.${extension}`;
         a.click();
         URL.revokeObjectURL(url);
         
@@ -2200,7 +2402,7 @@ async function recordVideo(orientation) {
         }
     }, 1000);
     
-    // Rotate the shirt slowly during recording
+    // Rotate the model slowly during recording
     const originalRotation = tshirt.object3D.rotation.y;
     const rotationInterval = setInterval(() => {
         tshirt.object3D.rotation.y += 0.02;
