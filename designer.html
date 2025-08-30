@@ -344,6 +344,66 @@ padding: 0;
     padding: 6px;
     font-size: 13px;
 }
+/* Device Motion Permission Modal */
+#permissionModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+}
+.permission-container {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+.permission-container h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+}
+.permission-container p {
+    margin-bottom: 20px;
+    color: #666;
+    line-height: 1.5;
+}
+.permission-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+.permission-button {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.allow-button {
+    background: #4CAF50;
+    color: white;
+}
+.allow-button:hover {
+    background: #45a049;
+}
+.deny-button {
+    background: #f44336;
+    color: white;
+}
+.deny-button:hover {
+    background: #d32f2f;
+}
 /* Mobile responsiveness */
 @media (max-width: 768px) {
 :root { --panel-w: 280px; }
@@ -406,12 +466,19 @@ font-size: 9px;
 .position-size-controls .control-group {
     min-width: 80px;
 }
+.permission-container {
+    width: 95%;
+    padding: 20px;
+}
+.permission-buttons {
+    flex-direction: column;
+}
 }
 </style>
 </head>
 <body>
 <!-- Full-screen 3D scene as background -->
-<a-scene  background="color: #e9e9e9" renderer="preserveDrawingBuffer: true">
+<a-scene embedded background="color: #e9e9e9" renderer="preserveDrawingBuffer: true">
 <a-assets>
 <a-asset-item id="shirtModel" src="t-shirt.glb"></a-asset-item>
 <img id="uvAsset" src="uvmap.png" crossorigin="anonymous" style="display:none;">
@@ -437,6 +504,18 @@ font-size: 9px;
             <div class="progress-fill" id="progressFill"></div>
         </div>
         <div class="progress-text" id="progressText">Preparing export...</div>
+    </div>
+</div>
+
+<!-- Device Motion Permission Modal -->
+<div id="permissionModal">
+    <div class="permission-container">
+        <h3>Device Motion Permission</h3>
+        <p>This immersive website requires access to your device motion sensors for an enhanced 3D experience. Please allow access to continue.</p>
+        <div class="permission-buttons">
+            <button id="allowPermission" class="permission-button allow-button">Allow</button>
+            <button id="denyPermission" class="permission-button deny-button">Deny</button>
+        </div>
     </div>
 </div>
 
@@ -817,6 +896,11 @@ const editorToggle = document.getElementById('editorToggle');
 const controlsPanel = document.getElementById('controls');
 const editorWrap = document.getElementById('editorWrap');
 
+// Permission modal elements
+const permissionModal = document.getElementById('permissionModal');
+const allowPermission = document.getElementById('allowPermission');
+const denyPermission = document.getElementById('denyPermission');
+
 // Image position and size controls
 const imageControls = document.getElementById('imageControls');
 const imageX = document.getElementById('imageX');
@@ -890,6 +974,54 @@ const mobileExportPNGPortrait = document.getElementById('mobileExportPNGPortrait
 const mobileExportPNGLandscape = document.getElementById('mobileExportPNGLandscape');
 const mobileExportMP4Portrait = document.getElementById('mobileExportMP4Portrait');
 const mobileExportMP4Landscape = document.getElementById('mobileExportMP4Landscape');
+
+// Device Motion Permission Handling
+function requestDeviceMotionPermission() {
+    // Check if DeviceMotionEvent is supported
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        // Show permission modal
+        permissionModal.style.display = 'flex';
+        
+        // Handle allow button
+        allowPermission.addEventListener('click', function() {
+            DeviceMotionEvent.requestPermission()
+                .then(permissionState => {
+                    if (permissionState === 'granted') {
+                        console.log('Device motion permission granted');
+                        // Hide the modal
+                        permissionModal.style.display = 'none';
+                    } else {
+                        console.log('Device motion permission denied');
+                        // Hide the modal
+                        permissionModal.style.display = 'none';
+                    }
+                })
+                .catch(console.error);
+        });
+        
+        // Handle deny button
+        denyPermission.addEventListener('click', function() {
+            console.log('Device motion permission denied by user');
+            // Hide the modal
+            permissionModal.style.display = 'none';
+        });
+    } else {
+        // DeviceMotionEvent is not supported or doesn't require permission
+        console.log('Device motion permission not required or not supported');
+        permissionModal.style.display = 'none';
+    }
+}
+
+// Request permission on page load
+window.addEventListener('load', function() {
+    // Only request permission on mobile devices
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        // Delay the permission request to ensure the page is fully loaded
+        setTimeout(requestDeviceMotionPermission, 1000);
+    } else {
+        permissionModal.style.display = 'none';
+    }
+});
 
 // Mobile menu toggle
 menuToggle.addEventListener('click', () => {
